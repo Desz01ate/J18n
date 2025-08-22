@@ -1,0 +1,8 @@
+{
+  "SimpleMessage": "Hola Mundo",
+  "ParameterizedMessage": "¡Hola, {0}!",
+  "MultipleParameters": "El usuario {0} tiene {1} elementos",
+  "FormattedNumber": "Precio: {0:C}",
+  "SpecialCharacters": "Caracteres especiales: àáâãäåæçèéêë",
+  "LongText": "Este es un texto muy largo que contiene múltiples palabras y debe ser manejado correctamente por el sistema de localización sin ningún problema."
+}

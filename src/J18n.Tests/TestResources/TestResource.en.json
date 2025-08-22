@@ -1,0 +1,9 @@
+{
+  "SimpleMessage": "Hello World",
+  "ParameterizedMessage": "Hello, {0}!",
+  "MultipleParameters": "User {0} has {1} items",
+  "FormattedNumber": "Price: {0:C}",
+  "EmptyString": "",
+  "SpecialCharacters": "Special chars: àáâãäåæçèéêë",
+  "LongText": "This is a very long text that contains multiple words and should be handled properly by the localization system without any issues."
+}

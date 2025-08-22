@@ -1,0 +1,5 @@
+{
+  "SimpleMessage": "Bonjour le monde",
+  "ParameterizedMessage": "Bonjour, {0} !",
+  "MultipleParameters": "L'utilisateur {0} a {1} éléments"
+}
