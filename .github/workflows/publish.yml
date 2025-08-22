@@ -1,0 +1,30 @@
+name: Publish to NuGet
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore src/J18n.sln
+
+      - name: Build
+        run: dotnet build src/J18n.sln --no-restore -c Release
+
+      - name: Pack
+        run: dotnet pack src/J18n/J18n.csproj --no-build -c Release -o ./nupkgs
+
+      - name: Publish to NuGet
+        run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
