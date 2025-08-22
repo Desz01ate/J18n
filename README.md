@@ -6,6 +6,8 @@ A JSON-based localization library for .NET that provides a drop-in replacement f
 
 - **Drop-in replacement** for resx resources using JSON files
 - **Full compatibility** with `IStringLocalizer<T>` and Microsoft.Extensions.Localization
+- **Nested JSON support** with automatic flattening using dot notation (e.g., `"User.Profile.Name"`)
+- **Array handling** with indexed access (e.g., `"Messages[0]"`, `"Items[1].Name"`)
 - **Culture hierarchy fallback** (specific → parent → English)
 - **Parameterized string formatting** using .NET composite format syntax
 - **Thread-safe operations** with built-in caching for optimal performance
@@ -133,18 +135,38 @@ services.AddJsonLocalization(customFileProvider, "Resources");
 
 ## Resource File Format
 
-JSON resource files should contain key-value pairs where values can include .NET composite format placeholders:
+JSON resource files support both flat key-value pairs and nested object structures. Nested objects are automatically flattened using dot notation for easy access.
 
 ```json
 {
-  "SimpleMessage": "Hello World",
-  "ParameterizedMessage": "Hello, {0}!",
-  "MultipleParameters": "User {0} has {1} items",
-  "FormattedNumber": "Price: {0:C}",
-  "FormattedDate": "Today is {0:yyyy-MM-dd}",
-  "SpecialCharacters": "Café, naïve, résumé",
-  "LongText": "This is a longer message that can span multiple lines and contain complex formatting."
+  "WelcomeMessage": "Welcome to our app!",
+  "User": {
+    "Profile": {
+      "Greeting": "Hello, {0}!",
+      "Settings": {
+        "Language": "English"
+      }
+    }
+  },
+  "GoodbyeMessage": "See you later!"
 }
+```
+
+### Accessing Nested Values
+
+Nested values are accessed using dot notation:
+
+```csharp
+var welcome = localizer["WelcomeMessage"];
+
+// Nested object access
+var greeting = localizer["User.Profile.Greeting", "John"];
+var language = localizer["User.Profile.Settings.Language"];
+var status = localizer["User.Account.Status"];
+
+// Array access with indexes
+var firstMessage = localizer["Messages[0]"];
+var secondMessage = localizer["Messages[1]"];
 ```
 
 ## Culture Fallback

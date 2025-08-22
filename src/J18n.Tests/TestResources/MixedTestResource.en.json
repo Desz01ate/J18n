@@ -1,0 +1,11 @@
+{
+  "FlatMessage": "This is a flat message",
+  "AnotherFlat": "Another flat message with {0} parameter",
+  "Nested": {
+    "Level1": "First level nested",
+    "Deep": {
+      "Level2": "Second level nested"
+    }
+  },
+  "FinalFlat": "Final flat message"
+}
