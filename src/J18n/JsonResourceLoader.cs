@@ -159,17 +159,37 @@ public class JsonResourceLoader
     /// <returns>
     /// A dictionary containing all key-value pairs from the JSON file.
     /// Returns an empty dictionary if the file is empty or contains no valid JSON objects.
+    /// Nested objects are flattened using dot notation (e.g., "User.Profile.Name").
     /// </returns>
     /// <remarks>
-    /// The JSON file should contain a single object where each property represents
-    /// a localization key-value pair. The method safely handles null values by
-    /// converting them to empty strings.
+    /// The JSON file can contain both flat key-value pairs and nested objects.
+    /// Nested objects are automatically flattened using dot notation for keys.
+    /// The method safely handles null values by converting them to empty strings.
     /// 
-    /// Expected JSON format:
+    /// Supported JSON formats:
+    /// Flat structure:
     /// {
     ///   "WelcomeMessage": "Welcome!",
-    ///   "GoodbyeMessage": "Goodbye!",
-    ///   "ParameterizedMessage": "Hello, {0}!"
+    ///   "GoodbyeMessage": "Goodbye!"
+    /// }
+    /// 
+    /// Nested structure:
+    /// {
+    ///   "User": {
+    ///     "Profile": {
+    ///       "Name": "Hello, {0}!"
+    ///     }
+    ///   }
+    /// }
+    /// 
+    /// Mixed structure:
+    /// {
+    ///   "WelcomeMessage": "Welcome!",
+    ///   "User": {
+    ///     "Settings": {
+    ///       "Language": "English"
+    ///     }
+    ///   }
     /// }
     /// </remarks>
     /// <exception cref="JsonException">
@@ -184,12 +204,68 @@ public class JsonResourceLoader
         var jsonDocument = JsonDocument.Parse(jsonContent);
         var resources = new Dictionary<string, string>();
 
-        foreach (var property in jsonDocument.RootElement.EnumerateObject())
-        {
-            resources[property.Name] = property.Value.GetString() ?? string.Empty;
-        }
+        FlattenJsonElement(jsonDocument.RootElement, string.Empty, resources);
 
         return resources;
+    }
+
+    /// <summary>
+    /// Recursively flattens a JSON element into key-value pairs using dot notation.
+    /// </summary>
+    /// <param name="element">The JSON element to flatten.</param>
+    /// <param name="prefix">The current key prefix for nested elements.</param>
+    /// <param name="resources">The dictionary to store the flattened key-value pairs.</param>
+    /// <remarks>
+    /// This method handles various JSON value types:
+    /// - Objects: Recursively flattened with dot notation
+    /// - Arrays: Indexed with square brackets (e.g., "Items[0]")
+    /// - Strings: Added directly to the resources dictionary
+    /// - Numbers, booleans: Converted to strings
+    /// - Null values: Converted to empty strings
+    /// </remarks>
+    private static void FlattenJsonElement(JsonElement element, string prefix, Dictionary<string, string> resources)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var property in element.EnumerateObject())
+                {
+                    var key = string.IsNullOrEmpty(prefix) ? property.Name : $"{prefix}.{property.Name}";
+                    FlattenJsonElement(property.Value, key, resources);
+                }
+                break;
+
+            case JsonValueKind.Array:
+                var arrayIndex = 0;
+                foreach (var arrayElement in element.EnumerateArray())
+                {
+                    var key = $"{prefix}[{arrayIndex}]";
+                    FlattenJsonElement(arrayElement, key, resources);
+                    arrayIndex++;
+                }
+                break;
+
+            case JsonValueKind.String:
+                resources[prefix] = element.GetString() ?? string.Empty;
+                break;
+
+            case JsonValueKind.Number:
+                resources[prefix] = element.GetRawText();
+                break;
+
+            case JsonValueKind.True:
+            case JsonValueKind.False:
+                resources[prefix] = element.GetBoolean().ToString().ToLowerInvariant();
+                break;
+
+            case JsonValueKind.Null:
+                resources[prefix] = string.Empty;
+                break;
+
+            default:
+                resources[prefix] = element.GetRawText();
+                break;
+        }
     }
 
     /// <summary>

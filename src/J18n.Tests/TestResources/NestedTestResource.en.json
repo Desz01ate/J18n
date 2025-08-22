@@ -1,0 +1,57 @@
+{
+  "SimpleMessage": "Hello World",
+  "User": {
+    "Profile": {
+      "Greeting": "Welcome, {0}!",
+      "Title": "Mr./Ms.",
+      "Settings": {
+        "Language": "English",
+        "Theme": "Light"
+      }
+    },
+    "Account": {
+      "Status": "Active",
+      "Type": "Premium"
+    }
+  },
+  "Navigation": {
+    "Home": "Home",
+    "About": "About Us",
+    "Contact": {
+      "Email": "Contact Email",
+      "Phone": "Contact Phone"
+    }
+  },
+  "Messages": [
+    "First message",
+    "Second message",
+    "Third message"
+  ],
+  "Complex": {
+    "Items": [
+      {
+        "Name": "Item 1",
+        "Description": "First item description"
+      },
+      {
+        "Name": "Item 2",
+        "Description": "Second item description"
+      }
+    ],
+    "Config": {
+      "MaxItems": "100",
+      "AllowDuplicates": "false",
+      "Settings": {
+        "AutoSave": "true",
+        "Timeout": "30"
+      }
+    }
+  },
+  "Numbers": {
+    "Count": 42,
+    "Price": 29.99,
+    "IsEnabled": true,
+    "IsDisabled": false,
+    "NullValue": null
+  }
+}

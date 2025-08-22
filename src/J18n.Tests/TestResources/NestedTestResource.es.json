@@ -1,0 +1,30 @@
+{
+  "SimpleMessage": "Hola Mundo",
+  "User": {
+    "Profile": {
+      "Greeting": "Bienvenido, {0}!",
+      "Title": "Sr./Sra.",
+      "Settings": {
+        "Language": "Español",
+        "Theme": "Oscuro"
+      }
+    },
+    "Account": {
+      "Status": "Activo",
+      "Type": "Premium"
+    }
+  },
+  "Navigation": {
+    "Home": "Inicio",
+    "About": "Acerca de",
+    "Contact": {
+      "Email": "Correo Electrónico",
+      "Phone": "Teléfono"
+    }
+  },
+  "Messages": [
+    "Primer mensaje",
+    "Segundo mensaje",
+    "Tercer mensaje"
+  ]
+}
