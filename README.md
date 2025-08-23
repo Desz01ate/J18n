@@ -13,12 +13,13 @@ A JSON-based localization library for .NET that provides a drop-in replacement f
 - **Thread-safe operations** with built-in caching for optimal performance
 - **Graceful fallback** for missing keys (returns key name)
 - **Easy dependency injection** integration
+- **Roslyn analyzers** for compile-time validation and IntelliSense support
 - **Comprehensive XML documentation**
 - **Extensive test coverage**
 
 ## Installation
 
-Install the package via NuGet Package Manager:
+Install the main package via NuGet Package Manager:
 
 ```bash
 dotnet add package J18n
@@ -28,6 +29,20 @@ Or via Package Manager Console:
 
 ```powershell
 Install-Package J18n
+```
+
+### Optional: Roslyn Analyzers
+
+For compile-time validation and IntelliSense support, also install the analyzers package:
+
+```bash
+dotnet add package J18n.Analyzers
+```
+
+Or via Package Manager Console:
+
+```powershell
+Install-Package J18n.Analyzers
 ```
 
 ## Quick Start
