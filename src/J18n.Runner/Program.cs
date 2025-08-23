@@ -16,4 +16,4 @@ var loader = new JsonResourceLoader(fileProvider);
 var factory = new JsonStringLocalizerFactory(loader);
 var localizer = factory.Create(typeof(Program));
 
-Console.WriteLine(localizer["greetings"]);
+Console.WriteLine(localizer["Home.Title"]);

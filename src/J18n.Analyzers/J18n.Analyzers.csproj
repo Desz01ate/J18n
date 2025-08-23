@@ -10,8 +10,8 @@
         <IsRoslynComponent>true</IsRoslynComponent>
         
         <PackageId>J18n.Analyzers</PackageId>
-        <PackageVersion>1.1.0</PackageVersion>
-        <Authors>Desz01ate</Authors>
+        <PackageVersion>1.1.1</PackageVersion>
+        <Authors>Chanvut Booneid</Authors>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageTags>roslyn;analyzer;localization;json;i18n;internationalization</PackageTags>
         <Description>Roslyn analyzers for J18n</Description>
