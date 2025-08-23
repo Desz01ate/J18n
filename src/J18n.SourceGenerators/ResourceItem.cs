@@ -51,6 +51,10 @@ public sealed class ResourceItem
 
     public static ResourceItem? TryCreate(AdditionalText additionalText, AnalyzerConfigOptions globalOptions)
     {
+        const string resourceRoot = "Resources";
+        const string resourcesWithSlash = $"/{resourceRoot}/";
+        const bool applyPascalCase = true;
+
         var filePath = additionalText.Path;
 
         if (!filePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
@@ -59,31 +63,29 @@ public sealed class ResourceItem
         }
 
         var rootNamespace = globalOptions.TryGetValue("build_property.RootNamespace", out var ns) ? ns : string.Empty;
-        const string resourceRoot = "Resources";
-        const bool applyPascalCase = true;
 
         // Normalize path separators
         var normalizedPath = filePath.Replace('\\', '/');
 
-        // Find Resources directory in the path
-        const string resourcesPattern = $"/{resourceRoot}/";
-        var resourceIndex = normalizedPath.LastIndexOf(resourcesPattern, StringComparison.OrdinalIgnoreCase);
+        // Find Resources directory in the path  
+        int startAfterResources;
+        var resourceIndex = normalizedPath.LastIndexOf(resourcesWithSlash, StringComparison.OrdinalIgnoreCase);
 
-        if (resourceIndex == -1)
+        if (resourceIndex >= 0)
         {
-            // Try at the beginning of path for root-level Resources
-            if (normalizedPath.StartsWith($"{resourceRoot}/"))
-            {
-                resourceIndex = -resourcesPattern.Length + 1; // Adjust for calculation below
-            }
-            else
-            {
-                return null;
-            }
+            // Found "/Resources/" in path
+            startAfterResources = resourceIndex + resourcesWithSlash.Length;
+        }
+        else if (normalizedPath.StartsWith($"{resourceRoot}/", StringComparison.OrdinalIgnoreCase))
+        {
+            // Path starts with "Resources/"
+            startAfterResources = resourceRoot.Length + 1;
+        }
+        else
+        {
+            return null;
         }
 
-        // Extract the portion after "Resources/"
-        var startAfterResources = resourceIndex + resourcesPattern.Length;
         var pathAfterResources = normalizedPath.Substring(startAfterResources);
 
         // Get directory path (everything before the filename)
