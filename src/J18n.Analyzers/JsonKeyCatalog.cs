@@ -7,7 +7,7 @@ using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
-namespace J18n.Analyzer;
+namespace J18n.Analyzers;
 
 public class JsonKeyCatalog
 {
@@ -236,7 +236,7 @@ public class JsonKeyCatalog
             var lastPart = parts[parts.Length - 1];
 
             // Check if it looks like a culture code (2-5 letters, possibly with dash)
-            if (lastPart.Length >= 2 && lastPart.Length <= 5 &&
+            if (lastPart.Length is >= 2 and <= 5 &&
                 System.Text.RegularExpressions.Regex.IsMatch(lastPart, @"^[a-zA-Z]{2}(-[a-zA-Z]{2})?$"))
             {
                 return lastPart.ToLowerInvariant();

@@ -1,4 +1,4 @@
-namespace J18n.Analyzer.Tests.Verifier;
+namespace J18n.Analyzers.Tests.Verifier;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;

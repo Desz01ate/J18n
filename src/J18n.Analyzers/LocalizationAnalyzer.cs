@@ -6,9 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 
-namespace J18n.Analyzer;
-
-using System.Text.Json;
+namespace J18n.Analyzers;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class LocalizationAnalyzer : DiagnosticAnalyzer
@@ -140,8 +138,8 @@ public class LocalizationAnalyzer : DiagnosticAnalyzer
     {
         return operation switch
         {
-            IInvocationOperation invocation when invocation.Arguments.Length > 0 => invocation.Arguments[0].Value,
-            IPropertyReferenceOperation propertyRef when propertyRef.Arguments.Length > 0 => propertyRef.Arguments[0].Value,
+            IInvocationOperation { Arguments.Length: > 0 } invocation => invocation.Arguments[0].Value,
+            IPropertyReferenceOperation { Arguments.Length: > 0 } propertyRef => propertyRef.Arguments[0].Value,
             _ => null,
         };
     }

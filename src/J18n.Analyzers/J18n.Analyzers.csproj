@@ -8,16 +8,16 @@
 
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <IsRoslynComponent>true</IsRoslynComponent>
-
-        <RootNamespace>J18n.Analyzer</RootNamespace>
-        <AssemblyName>J18n.Analyzer</AssemblyName>
         
-        <PackageId>J18n.Analyzer</PackageId>
+        <PackageId>J18n.Analyzers</PackageId>
         <PackageVersion>1.0.0</PackageVersion>
-        <Authors>J18n</Authors>
+        <Authors>Desz01ate</Authors>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageTags>roslyn;analyzer;localization;json;i18n;internationalization</PackageTags>
         <Description>Roslyn analyzer for JSON localization keys - detects missing/unused keys and provides IntelliSense</Description>
-        <PackageProjectUrl>https://github.com/your-repo/j18n</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/your-repo/j18n</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/Desz01ate/J18n</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Desz01ate/J18n</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <DevelopmentDependency>true</DevelopmentDependency>
@@ -37,6 +37,7 @@
 
     <ItemGroup>
         <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers\dotnet\cs\$(AssemblyName).dll" Visible="false" />
+        <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
 </Project>

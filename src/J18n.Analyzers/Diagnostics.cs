@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 
-namespace J18n.Analyzer;
+namespace J18n.Analyzers;
 
 public static class Diagnostics
 {

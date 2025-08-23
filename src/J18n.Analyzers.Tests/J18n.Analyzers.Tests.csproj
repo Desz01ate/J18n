@@ -20,7 +20,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\J18n.Analyzer\J18n.Analyzer.csproj"/>
+        <ProjectReference Include="..\J18n.Analyzers\J18n.Analyzers.csproj" />
     </ItemGroup>
 
 </Project>

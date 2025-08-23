@@ -14,7 +14,7 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace J18n.Analyzer;
+namespace J18n.Analyzers;
 
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(PartialMissingKeyCodeFixProvider))]
 [Shared]

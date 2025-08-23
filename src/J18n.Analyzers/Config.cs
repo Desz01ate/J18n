@@ -4,7 +4,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 
-namespace J18n.Analyzer;
+namespace J18n.Analyzers;
 
 public class LocalizationConfig
 {

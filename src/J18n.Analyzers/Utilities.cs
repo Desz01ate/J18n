@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 
-namespace J18n.Analyzer;
+namespace J18n.Analyzers;
 
 public static class Utilities
 {
@@ -11,7 +11,7 @@ public static class Utilities
     {
         value = null;
 
-        if (operation is ILiteralOperation literal && literal.Type?.SpecialType == SpecialType.System_String)
+        if (operation is ILiteralOperation { Type.SpecialType: SpecialType.System_String } literal)
         {
             value = literal.ConstantValue.Value as string;
             return value != null;

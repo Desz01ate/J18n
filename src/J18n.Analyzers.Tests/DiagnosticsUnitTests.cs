@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using NUnit.Framework;
 
-namespace J18n.Analyzer.Tests;
+namespace J18n.Analyzers.Tests;
 
 using Verifier;
 
