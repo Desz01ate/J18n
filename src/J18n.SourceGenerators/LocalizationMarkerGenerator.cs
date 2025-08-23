@@ -1,5 +1,6 @@
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using System.IO;
 
 namespace J18n.SourceGenerators;
 
@@ -64,8 +65,34 @@ public sealed class LocalizationMarkerGenerator : IIncrementalGenerator
             {
                 var source = SourceEmitter.Emit(item);
 
-                context.AddSource(item.HintName, source);
+                // Roslyn hint names must be valid file names (no path separators)
+                var safeHintName = SanitizeHintName(item.HintName);
+                context.AddSource(safeHintName, source);
             }
         });
+    }
+
+    private static string SanitizeHintName(string hintName)
+    {
+        if (string.IsNullOrEmpty(hintName)) return "generated.g.cs";
+
+        var invalid = Path.GetInvalidFileNameChars();
+        var chars = hintName.ToCharArray();
+        for (int i = 0; i < chars.Length; i++)
+        {
+            var c = chars[i];
+            if (c == '/' || c == '\\')
+            {
+                chars[i] = '.'; // preserve hierarchy visually
+                continue;
+            }
+
+            // replace other invalid file-name chars
+            if (System.Array.IndexOf(invalid, c) >= 0)
+            {
+                chars[i] = '_';
+            }
+        }
+        return new string(chars);
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
@@ -31,6 +32,76 @@ public class LocalizationMarkerGeneratorSimpleTests
         Assert.Equal("Authentication", result.ClassName);
         Assert.Equal("TestProject.Resources", result.Namespace);
         Assert.Equal("LocalizationMarkers/Authentication.g.cs", result.HintName);
+    }
+
+    [Fact]
+    public void Generator_GeneratesNestedNamespace_ForNestedResource()
+    {
+        // Arrange
+        var generator = new LocalizationMarkerGenerator();
+        var driver = CSharpGeneratorDriver.Create(generator);
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            references: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
+
+        var additionalTexts = ImmutableArray.Create<AdditionalText>(
+            new TestAdditionalText("Resources/Admin/Auth.en-US.json", "{}"));
+
+        var options = new TestAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RootNamespace"] = "TestProject",
+        });
+
+        driver = (CSharpGeneratorDriver)driver.AddAdditionalTexts(additionalTexts)
+                                             .WithUpdatedAnalyzerConfigOptions(options);
+
+        // Act
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+
+        // Assert
+        Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+
+        var generatedText = string.Join("\n\n---\n\n", outputCompilation.SyntaxTrees.Select(t => t.ToString()));
+        Assert.Contains("namespace TestProject.Resources.Admin", generatedText);
+        Assert.Contains("public sealed partial class Auth", generatedText);
+    }
+
+    [Fact]
+    public void Generator_Deduplicates_MultipleCultures_EmitsSingleClassAndDiagnostic()
+    {
+        // Arrange
+        var generator = new LocalizationMarkerGenerator();
+        var driver = CSharpGeneratorDriver.Create(generator);
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            references: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
+
+        var additionalTexts = ImmutableArray.Create<AdditionalText>(
+            new TestAdditionalText("Resources/Test.en.json", "{}"),
+            new TestAdditionalText("Resources/Test.es.json", "{}"),
+            new TestAdditionalText("Resources/Test.en-US.json", "{}"));
+
+        var options = new TestAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RootNamespace"] = "TestProject",
+        });
+
+        driver = (CSharpGeneratorDriver)driver.AddAdditionalTexts(additionalTexts)
+                                             .WithUpdatedAnalyzerConfigOptions(options);
+
+        // Act
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+
+        // Assert - no errors
+        Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+
+        // Expect at least one duplicate diagnostic (LMG003)
+        Assert.Contains(diagnostics, d => d.Id == "LMG003");
+
+        // Only one Test class should be present in generated output
+        var generatedText = string.Join("\n\n---\n\n", outputCompilation.SyntaxTrees.Select(t => t.ToString()));
+        var count = Regex.Matches(generatedText, @"public\s+sealed\s+partial\s+class\s+Test\b").Count;
+        Assert.Equal(1, count);
     }
 
     [Fact]
@@ -175,8 +246,16 @@ public class LocalizationMarkerGeneratorSimpleTests
         // Act
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
 
-        // Assert - just verify no errors (generator may not produce output in test environment)
+        // Assert - no errors
         Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+
+        // Assert - generated source exists and matches expectations
+        var allGenerated = outputCompilation.SyntaxTrees.ToArray();
+        Assert.NotEmpty(allGenerated);
+
+        var generatedText = string.Join("\n\n---\n\n", allGenerated.Select(t => t.ToString()));
+        Assert.Contains("namespace TestProject.Resources", generatedText);
+        Assert.Contains("public sealed partial class Test", generatedText);
     }
 
     // Helper classes for testing
