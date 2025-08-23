@@ -95,9 +95,6 @@ public class JsonKeyCatalog
 
         try
         {
-            // First check for raw duplicate keys in JSON content (before parsing)
-            this.CheckForRawDuplicateKeys(file, content, culture);
-
             using var document = JsonDocument.Parse(content);
             var keys = ExtractKeysFromJsonElement(document.RootElement, "");
 
@@ -146,52 +143,6 @@ public class JsonKeyCatalog
 
     public IReadOnlyCollection<(string key, string culture, Location location)> DuplicateKeys => this._duplicateKeys;
 
-    private void CheckForRawDuplicateKeys(AdditionalText file, string content, string culture)
-    {
-        // This is a simplified check - in a full implementation, we'd need proper JSON parsing
-        // to handle complex cases like nested objects with same keys at different levels
-        var lines = content.Split('\n');
-        var seenKeys = new HashSet<string>();
-
-        for (var i = 0; i < lines.Length; i++)
-        {
-            var line = lines[i].Trim();
-
-            if (!line.Contains(':') || !line.Contains('"'))
-            {
-                continue;
-            }
-
-            // Extract potential key from line like: "keyName": "value"
-            var colonIndex = line.IndexOf(':');
-            var beforeColon = line.Substring(0, colonIndex).Trim();
-
-            if (!beforeColon.StartsWith("\"") || !beforeColon.EndsWith("\""))
-            {
-                continue;
-            }
-
-            var key = beforeColon.Trim('"');
-
-            if (seenKeys.Add(key))
-            {
-                continue;
-            }
-
-            // Found duplicate key at raw JSON level
-            var sourceText = file.GetText();
-
-            if (sourceText == null)
-            {
-                continue;
-            }
-
-            var textSpan = TextSpan.FromBounds(0, Math.Min(line.Length, sourceText.Length));
-            var location = Location.Create(file.Path, textSpan, sourceText.Lines.GetLinePositionSpan(textSpan));
-
-            this.ReportDuplicateKey(file, key, culture, location);
-        }
-    }
 
     private void ReportDuplicateKey(AdditionalText file, string key, string culture, Location? location = null)
     {
