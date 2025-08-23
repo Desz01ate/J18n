@@ -12,6 +12,9 @@
         <ProjectReference Include="..\J18n.Analyzers\J18n.Analyzers.csproj"
                           OutputItemType="Analyzer"
                           ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\J18n.SourceGenerators\J18n.SourceGenerators.csproj"
+                          OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
     <ItemGroup>
