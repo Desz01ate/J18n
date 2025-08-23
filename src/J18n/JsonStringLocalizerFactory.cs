@@ -44,13 +44,11 @@ namespace J18n;
 public class JsonStringLocalizerFactory : IStringLocalizerFactory
 {
     private readonly JsonResourceLoader _resourceLoader;
-    private readonly CultureInfo _culture;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonStringLocalizerFactory"/> class.
     /// </summary>
     /// <param name="resourceLoader">The resource loader to use for loading JSON resource files.</param>
-    /// <param name="culture"></param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="resourceLoader"/> is null.
     /// </exception>
@@ -58,10 +56,9 @@ public class JsonStringLocalizerFactory : IStringLocalizerFactory
     /// The factory will use the provided resource loader for all localizer instances it creates.
     /// The resource loader handles the actual loading, parsing, and caching of JSON resource files.
     /// </remarks>
-    public JsonStringLocalizerFactory(JsonResourceLoader resourceLoader, CultureInfo? culture = null)
+    public JsonStringLocalizerFactory(JsonResourceLoader resourceLoader)
     {
         this._resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
-        this._culture = culture ?? CultureInfo.CurrentUICulture;
     }
 
     /// <summary>
@@ -99,8 +96,10 @@ public class JsonStringLocalizerFactory : IStringLocalizerFactory
         ArgumentNullException.ThrowIfNull(resourceSource);
 
         var baseName = resourceSource.Name;
+        
+        var culture = CultureInfo.CurrentUICulture;
 
-        return new JsonStringLocalizer(this._resourceLoader, baseName, this._culture);
+        return new JsonStringLocalizer(this._resourceLoader, baseName, culture);
     }
 
     /// <summary>
@@ -143,7 +142,9 @@ public class JsonStringLocalizerFactory : IStringLocalizerFactory
         {
             throw new ArgumentNullException(nameof(baseName));
         }
+        
+        var culture = CultureInfo.CurrentUICulture;
 
-        return new JsonStringLocalizer(this._resourceLoader, baseName, this._culture);
+        return new JsonStringLocalizer(this._resourceLoader, baseName, culture);
     }
 }
