@@ -86,7 +86,7 @@ public class JsonResourceLoader
         foreach (var cultureToCheck in culturesToCheck.AsEnumerable().Reverse())
         {
             var fileName = $"{baseName}.{cultureToCheck.Name}.json";
-            var filePath = string.IsNullOrEmpty(this._resourcesPath) ? fileName : $"{this._resourcesPath}/{fileName}";
+            var filePath = string.IsNullOrEmpty(this._resourcesPath) ? fileName : Path.Combine(this._resourcesPath, fileName);
 
             var fileInfo = this._fileProvider.GetFileInfo(filePath);
 

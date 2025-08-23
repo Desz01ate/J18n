@@ -99,7 +99,7 @@ public class JsonStringLocalizer : IStringLocalizer
 
             var value = this.GetStringValue(name);
             var resourceNotFound = value == name;
-            
+
             return new LocalizedString(name, value, resourceNotFound);
         }
     }
@@ -149,8 +149,9 @@ public class JsonStringLocalizer : IStringLocalizer
 
             var format = this.GetStringValue(name);
             var resourceNotFound = format == name;
-            
+
             string value;
+
             try
             {
                 value = string.Format(this._culture, format, arguments);
@@ -202,13 +203,12 @@ public class JsonStringLocalizer : IStringLocalizer
     /// </example>
     public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
     {
-        var resources = includeParentCultures 
-            ? this._resources 
+        var resources = includeParentCultures
+            ? this._resources
             : this._resourceLoader.LoadResources(this._baseName, this._culture);
 
         return resources.Select(kvp => new LocalizedString(kvp.Key, kvp.Value, resourceNotFound: false));
     }
-
 
     /// <summary>
     /// Gets the localized string value for the specified key, with fallback to the key name if not found.

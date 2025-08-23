@@ -93,14 +93,12 @@ public class JsonStringLocalizerFactory : IStringLocalizerFactory
     /// </example>
     public IStringLocalizer Create(Type resourceSource)
     {
-        if (resourceSource == null)
-        {
-            throw new ArgumentNullException(nameof(resourceSource));
-        }
+        ArgumentNullException.ThrowIfNull(resourceSource);
 
         var baseName = resourceSource.Name;
-        var culture = CultureInfo.CurrentUICulture;
         
+        var culture = CultureInfo.CurrentUICulture;
+
         return new JsonStringLocalizer(this._resourceLoader, baseName, culture);
     }
 
@@ -144,8 +142,9 @@ public class JsonStringLocalizerFactory : IStringLocalizerFactory
         {
             throw new ArgumentNullException(nameof(baseName));
         }
-
+        
         var culture = CultureInfo.CurrentUICulture;
+
         return new JsonStringLocalizer(this._resourceLoader, baseName, culture);
     }
 }

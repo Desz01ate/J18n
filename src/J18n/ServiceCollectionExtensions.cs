@@ -113,15 +113,9 @@ public static class ServiceCollectionExtensions
     /// </example>
     public static IServiceCollection AddJsonLocalization(this IServiceCollection services, Action<JsonLocalizationOptions> setupAction)
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullException.ThrowIfNull(services);
 
-        if (setupAction == null)
-        {
-            throw new ArgumentNullException(nameof(setupAction));
-        }
+        ArgumentNullException.ThrowIfNull(setupAction);
 
         var options = new JsonLocalizationOptions();
         setupAction(options);
@@ -186,15 +180,9 @@ public static class ServiceCollectionExtensions
     /// </example>
     public static IServiceCollection AddJsonLocalization(this IServiceCollection services, IFileProvider fileProvider, string? resourcesPath = null)
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullException.ThrowIfNull(services);
 
-        if (fileProvider == null)
-        {
-            throw new ArgumentNullException(nameof(fileProvider));
-        }
+        ArgumentNullException.ThrowIfNull(fileProvider);
 
         services.TryAddSingleton(fileProvider);
         services.TryAddSingleton(new JsonResourceLoader(fileProvider, resourcesPath ?? "Resources"));
