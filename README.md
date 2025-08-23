@@ -13,7 +13,7 @@ A JSON-based localization library for .NET that provides a drop-in replacement f
 - **Thread-safe operations** with built-in caching for optimal performance
 - **Graceful fallback** for missing keys (returns key name)
 - **Easy dependency injection** integration
-- **Roslyn analyzers** for compile-time validation and IntelliSense support
+- **Roslyn analyzers** for compile-time validation and code fixes
 - **Comprehensive XML documentation**
 - **Extensive test coverage**
 
@@ -33,7 +33,7 @@ Install-Package J18n
 
 ### Optional: Roslyn Analyzers
 
-For compile-time validation and IntelliSense support, also install the analyzers package:
+For compile-time validation and code fixes, also install the analyzers package:
 
 ```bash
 dotnet add package J18n.Analyzers
@@ -254,6 +254,41 @@ public class EmailService
 - **Thread-safe** operations allow concurrent access
 - **Lazy loading** - resources loaded only when first accessed
 - **Memory efficient** - shares resources across localizer instances
+
+## Roslyn Analyzers (J18n.Analyzers)
+
+The J18n.Analyzers package provides compile-time validation and code fixes for your JSON localization keys.
+
+### Features
+
+- **Missing Key Detection (LOC001)**: Identifies localization keys referenced in code but missing from JSON files
+- **Unused Key Detection (LOC002)**: Finds keys defined in JSON files but never used in code
+- **Partial Missing Keys (LOC003)**: Detects keys missing in some cultures but present in others
+- **Duplicate Key Detection (LOC004)**: Identifies duplicate keys within the same JSON file
+- **Code Fixes**: Automatic suggestions for missing keys with nearest matches
+
+### Setup
+
+1. Install the analyzer package:
+   ```bash
+   dotnet add package J18n.Analyzers
+   ```
+
+2. Include your JSON localization files as `AdditionalFiles` in your project:
+   ```xml
+   <ItemGroup>
+     <AdditionalFiles Include="Resources/**/*.json" />
+   </ItemGroup>
+   ```
+
+### Diagnostic Rules
+
+| Rule | Severity | Description |
+|------|----------|-------------|
+| **LOC001** | Error | Referenced localization key not found in any culture |
+| **LOC002** | Warning | Localization key defined but never used |
+| **LOC003** | Warning | Key missing in some cultures but present in others |
+| **LOC004** | Error | Duplicate key definition in the same JSON file |
 
 ## Compatibility
 
