@@ -230,7 +230,7 @@ public class LocalizationMarkerGeneratorSimpleTests
     public void SourceEmitter_Emit_GeneratesCorrectCode()
     {
         // Arrange
-        var item = new ResourceItem("test", "", "Test", "Test", "MyApp.Resources", "Test.g.cs");
+        var item = new ResourceItem("test", "", "Test", "Test", "MyApp.Resources", "Test.g.cs", null);
 
         // Act
         var result = SourceEmitter.Emit(item);
@@ -355,5 +355,123 @@ public class LocalizationMarkerGeneratorSimpleTests
 
         public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => new TestAnalyzerConfigOptions(new Dictionary<string, string>());
         public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => new TestAnalyzerConfigOptions(new Dictionary<string, string>());
+    }
+
+    [Fact]
+    public void Generator_GeneratesSimpleProperties_FromJsonValues()
+    {
+        // Arrange
+        var generator = new LocalizationMarkerGenerator();
+        var driver = CSharpGeneratorDriver.Create(generator);
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            references: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
+
+        var jsonContent = """{"name": "test", "message": "Hello World"}""";
+        var additionalTexts = ImmutableArray.Create<AdditionalText>(
+            new TestAdditionalText("Resources/Test.json", jsonContent));
+
+        var options = new TestAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RootNamespace"] = "TestProject",
+        });
+
+        driver = (CSharpGeneratorDriver)driver.AddAdditionalTexts(additionalTexts)
+                                             .WithUpdatedAnalyzerConfigOptions(options);
+
+        // Act
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+
+        // Assert
+        Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+
+        var generatedText = string.Join("\n\n---\n\n", outputCompilation.SyntaxTrees.Select(t => t.ToString()));
+        Assert.Contains("public const string Name = \"name\";", generatedText);
+        Assert.Contains("public const string Message = \"message\";", generatedText);
+    }
+
+    [Fact]
+    public void Generator_GeneratesNestedClasses_FromJsonObjects()
+    {
+        // Arrange
+        var generator = new LocalizationMarkerGenerator();
+        var driver = CSharpGeneratorDriver.Create(generator);
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            references: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
+
+        var jsonContent = """{"user": {"name": "John", "email": "john@example.com"}, "title": "Welcome"}""";
+        var additionalTexts = ImmutableArray.Create<AdditionalText>(
+            new TestAdditionalText("Resources/Test.json", jsonContent));
+
+        var options = new TestAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RootNamespace"] = "TestProject",
+        });
+
+        driver = (CSharpGeneratorDriver)driver.AddAdditionalTexts(additionalTexts)
+                                             .WithUpdatedAnalyzerConfigOptions(options);
+
+        // Act
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+
+        // Assert
+        Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+
+        var generatedText = string.Join("\n\n---\n\n", outputCompilation.SyntaxTrees.Select(t => t.ToString()));
+        Assert.Contains("public const string Title = \"title\";", generatedText);
+        Assert.Contains("public static class User", generatedText);
+        Assert.Contains("public const string Name = \"user.name\";", generatedText);
+        Assert.Contains("public const string Email = \"user.email\";", generatedText);
+    }
+
+    [Fact]
+    public void Generator_SanitizesPropertyNames_FromInvalidJsonKeys()
+    {
+        // Arrange  
+        var generator = new LocalizationMarkerGenerator();
+        var driver = CSharpGeneratorDriver.Create(generator);
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            references: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
+
+        var jsonContent = """{"user-name": "test", "class": "invalid", "123invalid": "number"}""";
+        var additionalTexts = ImmutableArray.Create<AdditionalText>(
+            new TestAdditionalText("Resources/Test.json", jsonContent));
+
+        var options = new TestAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RootNamespace"] = "TestProject",
+        });
+
+        driver = (CSharpGeneratorDriver)driver.AddAdditionalTexts(additionalTexts)
+                                             .WithUpdatedAnalyzerConfigOptions(options);
+
+        // Act
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+
+        // Assert
+        Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+
+        var generatedText = string.Join("\n\n---\n\n", outputCompilation.SyntaxTrees.Select(t => t.ToString()));
+        Assert.Contains("public const string UserName = \"user-name\";", generatedText);
+        Assert.Contains("public const string Class_ = \"class\";", generatedText);
+        Assert.Contains("public const string _123invalid = \"123invalid\";", generatedText);
+    }
+
+    [Fact]
+    public void SourceEmitter_GeneratesEmptyClass_WhenNoJsonStructure()
+    {
+        // Arrange
+        var item = new ResourceItem("test", "", "Test", "Test", "MyApp.Resources", "Test.g.cs", null);
+
+        // Act
+        var result = SourceEmitter.Emit(item);
+
+        // Assert
+        Assert.Contains("namespace MyApp.Resources", result);
+        Assert.Contains("public sealed partial class Test", result);
+        Assert.DoesNotContain("public const string", result);
+        Assert.DoesNotContain("public static class", result);
     }
 }

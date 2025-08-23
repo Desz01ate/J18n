@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -38,8 +39,10 @@ public sealed class ResourceItem
     public string Namespace { get; }
 
     public string HintName { get; }
+    
+    public JsonObjectNode? JsonStructure { get; }
 
-    public ResourceItem(string absolutePath, string relativeDirFromRoot, string baseName, string className, string namespaceName, string hintName)
+    public ResourceItem(string absolutePath, string relativeDirFromRoot, string baseName, string className, string namespaceName, string hintName, JsonObjectNode? jsonStructure = null)
     {
         this.AbsolutePath = absolutePath;
         this.RelativeDirFromRoot = relativeDirFromRoot;
@@ -47,6 +50,7 @@ public sealed class ResourceItem
         this.ClassName = className;
         this.Namespace = namespaceName;
         this.HintName = hintName;
+        this.JsonStructure = jsonStructure;
     }
 
     public static ResourceItem? TryCreate(AdditionalText additionalText, AnalyzerConfigOptions globalOptions)
@@ -135,13 +139,30 @@ public sealed class ResourceItem
             namespaceName = $"{rootNamespace}.{string.Join(".", sanitizedSegments)}";
         }
 
+        // Parse JSON content
+        JsonObjectNode? jsonStructure = null;
+        try
+        {
+            var sourceText = additionalText.GetText();
+            if (sourceText != null)
+            {
+                var content = sourceText.ToString();
+                using var document = JsonDocument.Parse(content);
+                jsonStructure = JsonStructureParser.ParseJsonElement(document.RootElement, className);
+            }
+        }
+        catch (JsonException)
+        {
+            // Invalid JSON - continue without structure
+        }
+
         // Create hint name
         var hintPath = string.IsNullOrEmpty(relativeDirFromRoot)
             ? className
             : $"{relativeDirFromRoot.Replace('.', '/')}/{className}";
         var hintName = $"LocalizationMarkers/{hintPath}.g.cs";
 
-        return new ResourceItem(filePath, relativeDirFromRoot, baseName, className, namespaceName, hintName);
+        return new ResourceItem(filePath, relativeDirFromRoot, baseName, className, namespaceName, hintName, jsonStructure);
     }
 
     private static string GetRelativePathFromProject(string normalizedPath, string? projectDir)

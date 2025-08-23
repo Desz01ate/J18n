@@ -22,4 +22,4 @@ var programResourceInstance = new ProgramResource();
 var myRandomClassInstance = new MyRandomClass();
 var myLocalizationInstance = new MyLocalization();
 
-Console.WriteLine(localizer["Hello"]);
+Console.WriteLine(localizer[ProgramResource.Home.Title]);

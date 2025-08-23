@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -22,9 +25,99 @@ public static class SourceEmitter
         source.AppendLine("    [System.Diagnostics.DebuggerNonUserCode]");
         source.AppendLine($"    public sealed partial class {item.ClassName}");
         source.AppendLine("    {");
+        
+        if (item.JsonStructure != null)
+        {
+            GenerateClassContent(source, item.JsonStructure, "        ");
+        }
+        
         source.AppendLine("    }");
         source.AppendLine("}");
         
         return source.ToString();
+    }
+    
+    private static void GenerateClassContent(StringBuilder source, JsonObjectNode node, string indent)
+    {
+        foreach (var child in node.Children)
+        {
+            if (child is JsonValueNode valueNode)
+            {
+                var propertyName = SanitizePropertyName(valueNode.Name);
+                source.AppendLine($"{indent}public const string {propertyName} = \"{EscapeString(valueNode.KeyPath)}\";");
+            }
+            else if (child is JsonObjectNode objectNode)
+            {
+                var className = SanitizePropertyName(objectNode.Name);
+                source.AppendLine();
+                source.AppendLine($"{indent}public static class {className}");
+                source.AppendLine($"{indent}{{");
+                GenerateClassContent(source, objectNode, indent + "    ");
+                source.AppendLine($"{indent}}}");
+            }
+        }
+    }
+    
+    private static string SanitizePropertyName(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return "_";
+            
+        // Convert to PascalCase
+        var sanitized = ToPascalCase(name);
+        
+        // Ensure it starts with letter or underscore
+        if (!char.IsLetter(sanitized[0]) && sanitized[0] != '_')
+        {
+            sanitized = "_" + sanitized;
+        }
+        
+        // Handle keywords
+        var keywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked",
+            "class", "const", "continue", "decimal", "default", "delegate", "do", "double", "else",
+            "enum", "event", "explicit", "extern", "false", "finally", "fixed", "float", "for",
+            "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal", "is", "lock",
+            "long", "namespace", "new", "null", "object", "operator", "out", "override", "params",
+            "private", "protected", "public", "readonly", "ref", "return", "sbyte", "sealed",
+            "short", "sizeof", "stackalloc", "static", "string", "struct", "switch", "this",
+            "throw", "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort",
+            "using", "virtual", "void", "volatile", "while"
+        };
+        
+        if (keywords.Contains(sanitized))
+        {
+            sanitized += "_";
+        }
+        
+        return sanitized;
+    }
+    
+    private static string ToPascalCase(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return "_";
+            
+        // Replace invalid characters with spaces, then split and capitalize
+        var invalidChars = new[] { '-', '_', ' ', '.' };
+        var result = input;
+        
+        foreach (var invalidChar in invalidChars)
+        {
+            result = result.Replace(invalidChar, ' ');
+        }
+        
+        var parts = result.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        var pascalCase = string.Join("", parts.Select(part => 
+            string.IsNullOrEmpty(part) ? string.Empty : 
+            char.ToUpperInvariant(part[0]) + part.Substring(1).ToLowerInvariant()));
+        
+        return string.IsNullOrEmpty(pascalCase) ? "_" : pascalCase;
+    }
+    
+    private static string EscapeString(string value)
+    {
+        return value.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t");
     }
 }
