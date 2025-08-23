@@ -21,10 +21,14 @@
         <None Update="Resources\**\*.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Update="Localization\**\*.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
         <AdditionalFiles Include="Resources\**\*.json"/>
+        <AdditionalFiles Include="Localization\**\*.json"/>
     </ItemGroup>
 
 </Project>

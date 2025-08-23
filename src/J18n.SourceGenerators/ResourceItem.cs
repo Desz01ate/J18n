@@ -63,36 +63,38 @@ public sealed class ResourceItem
         }
 
         var rootNamespace = globalOptions.TryGetValue("build_property.RootNamespace", out var ns) ? ns : string.Empty;
+        globalOptions.TryGetValue("build_property.ProjectDir", out var projectDir);
 
         // Normalize path separators
         var normalizedPath = filePath.Replace('\\', '/');
+        var relativePathFromProject = GetRelativePathFromProject(normalizedPath, projectDir);
 
-        // Find Resources directory in the path  
-        int startAfterResources;
-        var resourceIndex = normalizedPath.LastIndexOf(resourcesWithSlash, StringComparison.OrdinalIgnoreCase);
+        // Determine if under top-level Resources or somewhere else
+        string relativeDirFromRoot;
+        string namespaceSuffix;
 
-        if (resourceIndex >= 0)
+        if (relativePathFromProject.StartsWith($"{resourceRoot}/", StringComparison.OrdinalIgnoreCase))
         {
-            // Found "/Resources/" in path
-            startAfterResources = resourceIndex + resourcesWithSlash.Length;
-        }
-        else if (normalizedPath.StartsWith($"{resourceRoot}/", StringComparison.OrdinalIgnoreCase))
-        {
-            // Path starts with "Resources/"
-            startAfterResources = resourceRoot.Length + 1;
+            // Compute parts under Resources/ for relativeDirFromRoot to keep prior behavior
+            var afterResources = relativePathFromProject.Substring(resourceRoot.Length + 1);
+            var lastSlashIndex = afterResources.LastIndexOf('/');
+            relativeDirFromRoot = lastSlashIndex > 0
+                ? afterResources.Substring(0, lastSlashIndex).Replace('/', '.')
+                : string.Empty;
+
+            // Namespace includes Resources plus subfolders under it
+            namespaceSuffix = string.IsNullOrEmpty(relativeDirFromRoot)
+                ? resourceRoot
+                : $"{resourceRoot}.{relativeDirFromRoot}";
         }
         else
         {
-            return null;
+            // Use full folder path (without file name) relative to project root
+            var lastSlashIndex = relativePathFromProject.LastIndexOf('/');
+            var folderOnly = lastSlashIndex > 0 ? relativePathFromProject.Substring(0, lastSlashIndex) : string.Empty;
+            relativeDirFromRoot = folderOnly.Replace('/', '.');
+            namespaceSuffix = relativeDirFromRoot;
         }
-
-        var pathAfterResources = normalizedPath.Substring(startAfterResources);
-
-        // Get directory path (everything before the filename)
-        var lastSlashIndex = pathAfterResources.LastIndexOf('/');
-        var relativeDirFromRoot = lastSlashIndex > 0
-            ? pathAfterResources.Substring(0, lastSlashIndex).Replace('/', '.')
-            : string.Empty;
 
         // Extract base name (strip extension and culture suffix)
         var fileName = Path.GetFileNameWithoutExtension(filePath);
@@ -113,15 +115,24 @@ public sealed class ResourceItem
         // Sanitize class name
         var className = SanitizeIdentifier(baseName, applyPascalCase);
 
-        // Build namespace: RootNamespace.Resources[.SubfolderPath]
-        var namespaceName = string.IsNullOrEmpty(rootNamespace) ? resourceRoot : $"{rootNamespace}.{resourceRoot}";
+        // Build namespace: RootNamespace[.namespaceSuffix]
+        string namespaceName;
 
-        if (!string.IsNullOrEmpty(relativeDirFromRoot))
+        if (string.IsNullOrEmpty(rootNamespace))
         {
-            var segments = relativeDirFromRoot.Split('.');
+            namespaceName = namespaceSuffix;
+        }
+        else if (string.IsNullOrEmpty(namespaceSuffix))
+        {
+            namespaceName = rootNamespace;
+        }
+        else
+        {
+            // Sanitize each segment of the suffix
+            var segments = namespaceSuffix.Split('.');
             var sanitizedSegments = segments.Where(s => !string.IsNullOrWhiteSpace(s))
                                             .Select(s => SanitizeIdentifier(s, applyPascalCase));
-            namespaceName = $"{namespaceName}.{string.Join(".", sanitizedSegments)}";
+            namespaceName = $"{rootNamespace}.{string.Join(".", sanitizedSegments)}";
         }
 
         // Create hint name
@@ -131,6 +142,35 @@ public sealed class ResourceItem
         var hintName = $"LocalizationMarkers/{hintPath}.g.cs";
 
         return new ResourceItem(filePath, relativeDirFromRoot, baseName, className, namespaceName, hintName);
+    }
+
+    private static string GetRelativePathFromProject(string normalizedPath, string? projectDir)
+    {
+        // If path is already relative (no leading slash or drive letter), use as-is
+        var isRooted = Path.IsPathRooted(normalizedPath) || normalizedPath.StartsWith("/", StringComparison.Ordinal);
+
+        if (!isRooted)
+        {
+            return normalizedPath.TrimStart('/');
+        }
+
+        if (!string.IsNullOrEmpty(projectDir))
+        {
+            try
+            {
+                var rel = Utils.PathCompat.GetRelativePath(projectDir, normalizedPath)
+                               .Replace('\\', '/');
+                return rel.TrimStart('/');
+            }
+            catch
+            {
+                // ignore and fall back
+            }
+        }
+
+        // Fallback: attempt to locate "/Resources/" marker, else return filename only folder
+        var idx = normalizedPath.IndexOf("/", StringComparison.Ordinal);
+        return idx >= 0 ? normalizedPath.Substring(idx + 1) : normalizedPath;
     }
 
     private static string SanitizeIdentifier(string name, bool applyPascalCase)

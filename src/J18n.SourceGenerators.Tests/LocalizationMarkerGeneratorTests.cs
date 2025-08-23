@@ -146,6 +146,26 @@ public class LocalizationMarkerGeneratorSimpleTests
     }
 
     [Fact]
+    public void ResourceItem_TryCreate_NonResourcesFolder_UsesFolderAsNamespaceSuffix()
+    {
+        // Arrange
+        var additionalText = new TestAdditionalText("Localization/Auth.en.json", "{}");
+        var options = new TestAnalyzerConfigOptions(new Dictionary<string, string>
+        {
+            ["build_property.RootNamespace"] = "MyApp",
+        });
+
+        // Act
+        var result = ResourceItem.TryCreate(additionalText, options);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("Auth", result.ClassName);
+        Assert.Equal("MyApp.Localization", result.Namespace);
+        Assert.Equal("LocalizationMarkers/Localization/Auth.g.cs", result.HintName);
+    }
+
+    [Fact]
     public void ResourceItem_TryCreate_NoCultureSuffix_KeepsOriginalName()
     {
         // Arrange
@@ -220,6 +240,38 @@ public class LocalizationMarkerGeneratorSimpleTests
         Assert.Contains("public sealed partial class Test", result);
         Assert.Contains("[System.CodeDom.Compiler.GeneratedCode(\"LocalizationMarkerGenerator\"", result);
         Assert.Contains("[System.Diagnostics.DebuggerNonUserCode]", result);
+    }
+
+    [Fact]
+    public void Generator_GeneratesNamespace_FromNonResourcesFolder()
+    {
+        // Arrange
+        var generator = new LocalizationMarkerGenerator();
+        var driver = CSharpGeneratorDriver.Create(generator);
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            references: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
+
+        var additionalTexts = ImmutableArray.Create<AdditionalText>(
+            new TestAdditionalText("Localization/Authentication.en.json", "{}"));
+
+        var options = new TestAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RootNamespace"] = "TestProject",
+        });
+
+        driver = (CSharpGeneratorDriver)driver.AddAdditionalTexts(additionalTexts)
+                                             .WithUpdatedAnalyzerConfigOptions(options);
+
+        // Act
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+
+        // Assert
+        Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+
+        var generatedText = string.Join("\n\n---\n\n", outputCompilation.SyntaxTrees.Select(t => t.ToString()));
+        Assert.Contains("namespace TestProject.Localization", generatedText);
+        Assert.Contains("public sealed partial class Authentication", generatedText);
     }
 
     [Fact]
