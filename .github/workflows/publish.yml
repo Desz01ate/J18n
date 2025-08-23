@@ -26,8 +26,8 @@ jobs:
       - name: Pack J18n
         run: dotnet pack src/J18n/J18n.csproj --no-build -c Release -o ./nupkgs
 
-      - name: Pack J18n.Analyzer
-        run: dotnet pack src/J18n.Analyzer/J18n.Analyzer/J18n.Analyzer.csproj --no-build -c Release -o ./nupkgs
+      - name: Pack J18n.Analyzers
+        run: dotnet pack src/J18n.Analyzers/J18n.Analyzers.csproj --no-build -c Release -o ./nupkgs
 
       - name: Publish to NuGet
         run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
