@@ -3,7 +3,7 @@
     <PropertyGroup>
         <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
         <FrameworkVersion>net9.0</FrameworkVersion>
-        <PackageVersion>1.2.0</PackageVersion>
+        <PackageVersion>1.2.1</PackageVersion>
         <Authors>Chanvut Booneid</Authors>
         <PackageProjectUrl>https://github.com/Desz01ate/J18n</PackageProjectUrl>
         <RepositoryUrl>https://github.com/Desz01ate/J18n</RepositoryUrl>

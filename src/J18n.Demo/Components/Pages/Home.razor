@@ -1,0 +1,10 @@
+﻿@page "/"
+@using J18n.Demo.Localization
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer localizer;
+
+<PageTitle>@(localizer["Title"])</PageTitle>
+
+<h1>@(localizer["Content.First"])</h1>
+
+@(localizer["Content.Second"])
