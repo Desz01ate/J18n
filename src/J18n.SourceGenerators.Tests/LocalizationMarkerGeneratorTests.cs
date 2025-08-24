@@ -474,4 +474,120 @@ public class LocalizationMarkerGeneratorSimpleTests
         Assert.DoesNotContain("public const string", result);
         Assert.DoesNotContain("public static class", result);
     }
+
+    [Fact]
+    public void Generator_GeneratesArrayProperties_FromJsonArrays()
+    {
+        // Arrange
+        var generator = new LocalizationMarkerGenerator();
+        var driver = CSharpGeneratorDriver.Create(generator);
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            references: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
+
+        var jsonContent = """{"items": ["item1", "item2"], "title": "Test"}""";
+        var additionalTexts = ImmutableArray.Create<AdditionalText>(
+            new TestAdditionalText("Resources/Test.json", jsonContent));
+
+        var options = new TestAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RootNamespace"] = "TestProject",
+        });
+
+        driver = (CSharpGeneratorDriver)driver.AddAdditionalTexts(additionalTexts)
+                                             .WithUpdatedAnalyzerConfigOptions(options);
+
+        // Act
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+
+        // Assert
+        Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+
+        var generatedText = string.Join("\n\n---\n\n", outputCompilation.SyntaxTrees.Select(t => t.ToString()));
+        Assert.Contains("public const string Title = \"title\";", generatedText);
+        Assert.Contains("public static class Items", generatedText);
+        Assert.Contains("public const string Key = \"items\";", generatedText);
+        Assert.Contains("public const string _Item0 = \"items[0]\";", generatedText);
+        Assert.Contains("public const string _Item1 = \"items[1]\";", generatedText);
+    }
+
+    [Fact]
+    public void Generator_GeneratesNestedArrayProperties_FromJsonArraysWithObjects()
+    {
+        // Arrange
+        var generator = new LocalizationMarkerGenerator();
+        var driver = CSharpGeneratorDriver.Create(generator);
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            references: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
+
+        var jsonContent = """{"users": [{"name": "John", "age": "30"}, {"name": "Jane", "age": "25"}]}""";
+        var additionalTexts = ImmutableArray.Create<AdditionalText>(
+            new TestAdditionalText("Resources/Test.json", jsonContent));
+
+        var options = new TestAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RootNamespace"] = "TestProject",
+        });
+
+        driver = (CSharpGeneratorDriver)driver.AddAdditionalTexts(additionalTexts)
+                                             .WithUpdatedAnalyzerConfigOptions(options);
+
+        // Act
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+
+        // Assert
+        Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+
+        var generatedText = string.Join("\n\n---\n\n", outputCompilation.SyntaxTrees.Select(t => t.ToString()));
+        Assert.Contains("public static class Users", generatedText);
+        Assert.Contains("public const string Key = \"users\";", generatedText);
+        Assert.Contains("public static class Item0", generatedText);
+        Assert.Contains("public const string Name = \"users[0].name\";", generatedText);
+        Assert.Contains("public const string Age = \"users[0].age\";", generatedText);
+        Assert.Contains("public static class Item1", generatedText);
+        Assert.Contains("public const string Name = \"users[1].name\";", generatedText);
+        Assert.Contains("public const string Age = \"users[1].age\";", generatedText);
+    }
+
+    [Fact]
+    public void Generator_GeneratesNestedArrays_FromJsonNestedArrays()
+    {
+        // Arrange
+        var generator = new LocalizationMarkerGenerator();
+        var driver = CSharpGeneratorDriver.Create(generator);
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            references: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
+
+        var jsonContent = """{"matrix": [["a", "b"], ["c", "d"]]}""";
+        var additionalTexts = ImmutableArray.Create<AdditionalText>(
+            new TestAdditionalText("Resources/Test.json", jsonContent));
+
+        var options = new TestAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RootNamespace"] = "TestProject",
+        });
+
+        driver = (CSharpGeneratorDriver)driver.AddAdditionalTexts(additionalTexts)
+                                             .WithUpdatedAnalyzerConfigOptions(options);
+
+        // Act
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+
+        // Assert
+        Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+
+        var generatedText = string.Join("\n\n---\n\n", outputCompilation.SyntaxTrees.Select(t => t.ToString()));
+        Assert.Contains("public static class Matrix", generatedText);
+        Assert.Contains("public const string Key = \"matrix\";", generatedText);
+        Assert.Contains("public static class Item0", generatedText);
+        Assert.Contains("public const string Key = \"matrix[0]\";", generatedText);
+        Assert.Contains("public const string _Item0 = \"matrix[0][0]\";", generatedText);
+        Assert.Contains("public const string _Item1 = \"matrix[0][1]\";", generatedText);
+        Assert.Contains("public static class Item1", generatedText);
+        Assert.Contains("public const string Key = \"matrix[1]\";", generatedText);
+        Assert.Contains("public const string _Item0 = \"matrix[1][0]\";", generatedText);
+        Assert.Contains("public const string _Item1 = \"matrix[1][1]\";", generatedText);
+    }
 }

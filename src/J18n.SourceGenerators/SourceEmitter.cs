@@ -55,6 +55,52 @@ public static class SourceEmitter
                 GenerateClassContent(source, objectNode, indent + "    ");
                 source.AppendLine($"{indent}}}");
             }
+            else if (child is JsonArrayNode arrayNode)
+            {
+                var className = SanitizePropertyName(arrayNode.Name);
+                source.AppendLine();
+                source.AppendLine($"{indent}public static class {className}");
+                source.AppendLine($"{indent}{{");
+                
+                // Generate the array key itself
+                source.AppendLine($"{indent}    public const string Key = \"{EscapeString(arrayNode.KeyPath)}\";");
+                
+                // Generate array item access
+                GenerateArrayContent(source, arrayNode, indent + "    ");
+                
+                source.AppendLine($"{indent}}}");
+            }
+        }
+    }
+    
+    private static void GenerateArrayContent(StringBuilder source, JsonArrayNode arrayNode, string indent)
+    {
+        // Generate indexed constants for array items
+        for (int i = 0; i < arrayNode.Items.Count; i++)
+        {
+            var item = arrayNode.Items[i];
+            
+            if (item is JsonValueNode valueNode)
+            {
+                source.AppendLine($"{indent}public const string _Item{i} = \"{EscapeString(valueNode.KeyPath)}\";");
+            }
+            else if (item is JsonObjectNode objectNode)
+            {
+                source.AppendLine();
+                source.AppendLine($"{indent}public static class Item{i}");
+                source.AppendLine($"{indent}{{");
+                GenerateClassContent(source, objectNode, indent + "    ");
+                source.AppendLine($"{indent}}}");
+            }
+            else if (item is JsonArrayNode nestedArrayNode)
+            {
+                source.AppendLine();
+                source.AppendLine($"{indent}public static class Item{i}");
+                source.AppendLine($"{indent}{{");
+                source.AppendLine($"{indent}    public const string Key = \"{EscapeString(nestedArrayNode.KeyPath)}\";");
+                GenerateArrayContent(source, nestedArrayNode, indent + "    ");
+                source.AppendLine($"{indent}}}");
+            }
         }
     }
     

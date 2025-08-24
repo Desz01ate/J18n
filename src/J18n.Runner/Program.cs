@@ -2,7 +2,6 @@
 
 using System.Globalization;
 using J18n;
-using J18n.Runner.Localization;
 using J18n.Runner.Resources;
 using Microsoft.Extensions.FileProviders;
 
@@ -16,10 +15,6 @@ var fileProvider = new PhysicalFileProvider(testResourcesPath);
 
 var loader = new JsonResourceLoader(fileProvider);
 var factory = new JsonStringLocalizerFactory(loader);
-var localizer = factory.Create(typeof(MyLocalization));
+var localizer = factory.Create(typeof(MyRandomClass));
 
-var programResourceInstance = new ProgramResource();
-var myRandomClassInstance = new MyRandomClass();
-var myLocalizationInstance = new MyLocalization();
-
-Console.WriteLine(localizer[ProgramResource.Home.Title]);
+Console.WriteLine(localizer[MyRandomClass.Rolling.In_.The.Deep.Like]);
