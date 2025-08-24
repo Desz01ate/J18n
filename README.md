@@ -19,6 +19,12 @@ A JSON-based localization library for .NET that provides a drop-in replacement f
 
 ## Installation
 
+| Package               | NuGet |
+|-----------------------|--|
+| J18n                  | [![nuget](https://img.shields.io/nuget/v/J18n.svg)](https://www.nuget.org/packages/J18n/) |
+| J18n.Analyzers        | [![nuget](https://img.shields.io/nuget/v/J18n.Analyzers.svg)](https://www.nuget.org/packages/J18n.Analyzers/) |
+| J18n.SourceGenerators | [![nuget](https://img.shields.io/nuget/v/J18n.SourceGenerators.svg)](https://www.nuget.org/packages/J18n.SourceGenerators/) |
+
 Install the main package via NuGet Package Manager:
 
 ```bash
@@ -254,6 +260,37 @@ public class EmailService
 - **Thread-safe** operations allow concurrent access
 - **Lazy loading** - resources loaded only when first accessed
 - **Memory efficient** - shares resources across localizer instances
+
+## Source Generators (J18n.SourceGenerator)
+
+The J18n.SourceGenerators package provides compile-time code generation for strongly-typed access to your JSON localization keys.
+
+### Features
+
+- **Strongly-typed access**: Generates classes with properties for each localization key
+- **Compile-time safety**: Eliminates runtime string key errors
+
+### Setup
+
+1. Install the source generator package:
+   ```bash
+   dotnet add package J18n.SourceGenerator
+   ```
+
+2. Include your JSON localization files as `AdditionalFiles` in your project:
+   ```xml
+   <ItemGroup>
+     <AdditionalFiles Include="Resources/**/*.json" />
+   </ItemGroup>
+   ```
+
+3. Use the generated strongly-typed classes:
+   ```csharp
+   // Instead of: _localizer["WelcomeMessage"]
+   // Use: _localizer[Messages.WelcomeMessage]
+   var welcome = _localizer[Messages.WelcomeMessage];
+   var greeting = _localizer[Messages.User.Profile.Greeting, "John"];
+   ```
 
 ## Roslyn Analyzers (J18n.Analyzers)
 
