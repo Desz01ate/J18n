@@ -1,0 +1,22 @@
+{
+  "Hello": "Hallo",
+  "Dropdown": [
+    {
+      "Key": "Value"
+    },
+    [
+      "A",
+      "B",
+      "B"
+    ]
+  ],
+  "Rolling": {
+    "In": {
+      "The": {
+        "Deep": {
+          "Like": "Adele"
+        }
+      }
+    }
+  }
+}

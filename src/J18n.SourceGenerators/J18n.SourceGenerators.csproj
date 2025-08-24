@@ -8,13 +8,14 @@
 
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <IsRoslynComponent>true</IsRoslynComponent>
-
-        <PackageId>J18n.Analyzers</PackageId>
-        <PackageVersion>$(PackageVersion)</PackageVersion>
+        <RootNamespace>J18n.SourceGenerators</RootNamespace>
+        
+        <PackageId>J18n.SourceGenerators</PackageId>
+        <Version>$(PackageVersion)</Version>
         <Authors>$(Authors)</Authors>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageTags>roslyn;analyzer;localization;json;i18n;internationalization</PackageTags>
-        <Description>Roslyn analyzers for J18n</Description>
+        <PackageTags>roslyn;source-generator;localization;json;i18n;internationalization</PackageTags>
+        <Description>Source generators for J18n</Description>
         <PackageProjectUrl>$(PackageProjectUrl)</PackageProjectUrl>
         <RepositoryUrl>$(RepositoryUrl)</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
@@ -27,16 +28,9 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces">
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
-        <PackageReference Include="System.Text.Json"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+        <PackageReference Include="System.Text.Json" />
     </ItemGroup>
 
-    <ItemGroup>
-        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers\dotnet\cs\$(AssemblyName).dll" Visible="false"/>
-        <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
-    </ItemGroup>
 
 </Project>

@@ -2,6 +2,7 @@
 
 using System.Globalization;
 using J18n;
+using J18n.Runner.Resources;
 using Microsoft.Extensions.FileProviders;
 
 var culture = new CultureInfo("th-TH");
@@ -14,6 +15,6 @@ var fileProvider = new PhysicalFileProvider(testResourcesPath);
 
 var loader = new JsonResourceLoader(fileProvider);
 var factory = new JsonStringLocalizerFactory(loader);
-var localizer = factory.Create(typeof(Program));
+var localizer = factory.Create(typeof(MyRandomClass));
 
-Console.WriteLine(localizer["Home.Title"]);
+Console.WriteLine(localizer[MyRandomClass.Rolling.In_.The.Deep.Like]);

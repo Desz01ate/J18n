@@ -10,6 +10,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "J18n.Analyzers.Tests", "J18
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "J18n.Runner", "J18n.Runner\J18n.Runner.csproj", "{121AC0E3-656E-4FD2-AD52-714ECA0767FC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "J18n.SourceGenerators", "J18n.SourceGenerators\J18n.SourceGenerators.csproj", "{D5A62278-C11F-42B0-AE36-8196F9D22CB6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "J18n.SourceGenerators.Tests", "J18n.SourceGenerators.Tests\J18n.SourceGenerators.Tests.csproj", "{7DA467C8-03CE-4DF7-97BA-2706B66B48DD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BFA247BA-B949-4B70-9F70-3A5259A0107A}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Packages.props = Directory.Packages.props
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +45,13 @@ Global
 		{121AC0E3-656E-4FD2-AD52-714ECA0767FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{121AC0E3-656E-4FD2-AD52-714ECA0767FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{121AC0E3-656E-4FD2-AD52-714ECA0767FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D5A62278-C11F-42B0-AE36-8196F9D22CB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5A62278-C11F-42B0-AE36-8196F9D22CB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5A62278-C11F-42B0-AE36-8196F9D22CB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5A62278-C11F-42B0-AE36-8196F9D22CB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7DA467C8-03CE-4DF7-97BA-2706B66B48DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7DA467C8-03CE-4DF7-97BA-2706B66B48DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7DA467C8-03CE-4DF7-97BA-2706B66B48DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7DA467C8-03CE-4DF7-97BA-2706B66B48DD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
