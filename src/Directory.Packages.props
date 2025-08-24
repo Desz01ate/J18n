@@ -1,0 +1,41 @@
+<!-- For more info on central package management go to https://devblogs.microsoft.com/nuget/introducing-central-package-management/ -->
+<Project>
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+        <FrameworkVersion>net9.0</FrameworkVersion>
+        <PackageVersion>1.2.0</PackageVersion>
+        <Authors>Chanvut Booneid</Authors>
+        <PackageProjectUrl>https://github.com/Desz01ate/J18n</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Desz01ate/J18n</RepositoryUrl>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- Core -->
+        <PackageVersion Include="Microsoft.Extensions.Localization" Version="9.0.8"/>
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8"/>
+        <PackageVersion Include="Microsoft.Extensions.FileProviders.Physical" Version="9.0.8"/>
+        <PackageVersion Include="System.Text.Json" Version="9.0.8"/>
+
+        <!-- Analyzers/Generators -->
+        <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0"/>
+        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0"/>
+        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0"/>
+
+        <!-- Testing -->
+        <!-- Analyzer project uses NUnit, while the rest uses XUnit -->
+        <PackageVersion Include="Microsoft.Extensions.Localization.Abstractions" Version="9.0.8"/>
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1"/>
+        <PackageVersion Include="NUnit" Version="4.2.2"/>
+        <PackageVersion Include="NUnit.Analyzers" Version="4.4.0"/>
+        <PackageVersion Include="NUnit3TestAdapter" Version="5.1.0"/>
+
+        <PackageVersion Include="coverlet.collector" Version="6.0.2"/>
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0"/>
+        <PackageVersion Include="xunit" Version="2.9.2"/>
+        <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2"/>
+        <PackageVersion Include="FluentAssertions" Version="7.0.0"/>
+        <PackageVersion Include="Moq" Version="4.20.72"/>
+
+        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing.XUnit" Version="1.1.1"/>
+
+    </ItemGroup>
+</Project>
