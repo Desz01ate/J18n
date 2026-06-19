@@ -7,19 +7,6 @@ namespace J18n.Analyzers;
 
 public static class Utilities
 {
-    private static bool IsStringLiteralConstant(IOperation operation, out string? value)
-    {
-        value = null;
-
-        if (operation is ILiteralOperation { Type.SpecialType: SpecialType.System_String } literal)
-        {
-            value = literal.ConstantValue.Value as string;
-            return value != null;
-        }
-
-        return false;
-    }
-
     public static bool IsLocalizationAccessor(IOperation operation, LocalizationConfig config)
     {
         switch (operation)
@@ -82,9 +69,9 @@ public static class Utilities
 
     private static bool IsTypeOrImplementsInterface(ITypeSymbol type, string typeName)
     {
-        // Check exact type name match
+        // Check exact type name match (simple name or fully-qualified display string)
         if (type.Name.Equals(typeName, StringComparison.Ordinal) ||
-            type.ToDisplayString().Contains(typeName))
+            type.ToDisplayString().Equals(typeName, StringComparison.Ordinal))
         {
             return true;
         }
@@ -93,7 +80,7 @@ public static class Utilities
         foreach (var @interface in type.AllInterfaces)
         {
             if (@interface.Name.Equals(typeName, StringComparison.Ordinal) ||
-                @interface.ToDisplayString().Contains(typeName))
+                @interface.ToDisplayString().Equals(typeName, StringComparison.Ordinal))
             {
                 return true;
             }
@@ -104,12 +91,11 @@ public static class Utilities
 
     public static string? ExtractKeyFromArgument(IOperation argumentOperation)
     {
-        if (IsStringLiteralConstant(argumentOperation, out var literalValue))
+        var constant = argumentOperation.ConstantValue;
+        if (constant.HasValue && constant.Value is string value)
         {
-            return literalValue;
+            return value;
         }
-
-        // Could add support for interpolated strings without expressions here
 
         return null;
     }
