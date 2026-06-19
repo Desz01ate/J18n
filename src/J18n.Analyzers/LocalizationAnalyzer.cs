@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -34,7 +34,8 @@ public class LocalizationAnalyzer : DiagnosticAnalyzer
 
         var config = LocalizationConfig.FromAnalyzerOptions(context.Options);
         var catalog = JsonKeyCatalog.FromAdditionalFiles(additionalFiles, config);
-        var usedKeys = new HashSet<string>(config.KeyCaseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
+        var comparer = config.KeyCaseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+        var usedKeys = new ConcurrentDictionary<string, byte>(comparer);
 
         context.RegisterOperationAction(operationContext =>
         {
@@ -43,7 +44,7 @@ public class LocalizationAnalyzer : DiagnosticAnalyzer
 
         context.RegisterCompilationEndAction(compilationContext =>
         {
-            ReportUnusedKeys(compilationContext, config, catalog, usedKeys);
+            ReportUnusedKeys(compilationContext, catalog, usedKeys);
             ReportDuplicateKeys(compilationContext, catalog);
         });
     }
@@ -52,7 +53,7 @@ public class LocalizationAnalyzer : DiagnosticAnalyzer
         OperationAnalysisContext context,
         LocalizationConfig config,
         JsonKeyCatalog catalog,
-        HashSet<string> usedKeys)
+        ConcurrentDictionary<string, byte> usedKeys)
     {
         if (!Utilities.IsLocalizationAccessor(context.Operation, config))
         {
@@ -74,8 +75,8 @@ public class LocalizationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // Track usage
-        usedKeys.Add(key);
+        // Track usage (thread-safe: ConcurrentDictionary.TryAdd is atomic)
+        usedKeys.TryAdd(key, 0);
 
         var comparison = config.KeyCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 
@@ -146,17 +147,14 @@ public class LocalizationAnalyzer : DiagnosticAnalyzer
 
     private static void ReportUnusedKeys(
         CompilationAnalysisContext context,
-        LocalizationConfig config,
         JsonKeyCatalog catalog,
-        HashSet<string> usedKeys)
+        ConcurrentDictionary<string, byte> usedKeys)
     {
-        var comparison = config.KeyCaseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-
         foreach (var key in catalog.AllKeys)
         {
-            var isUsed = comparison == StringComparer.OrdinalIgnoreCase
-                ? usedKeys.Any(uk => string.Equals(uk, key, StringComparison.OrdinalIgnoreCase))
-                : usedKeys.Contains(key);
+            // The ConcurrentDictionary is constructed with the correct comparer (Ordinal or OrdinalIgnoreCase),
+            // so ContainsKey handles both case-sensitive and case-insensitive matching correctly.
+            var isUsed = usedKeys.ContainsKey(key);
 
             if (isUsed)
             {
