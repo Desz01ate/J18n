@@ -183,9 +183,15 @@ public class JsonStringLocalizerTests
         resultList.Should().AllSatisfy(ls => ls.ResourceNotFound.Should().BeFalse());
     }
 
+    // Renamed from GetAllStrings_WithIncludeParentCulturesFalse_ReturnsAllStrings:
+    // The fixture uses en culture — the single culture file IS the same as the merged hierarchy,
+    // so both true and false return the same keys for en. The test is retained as a non-regression
+    // check but updated to use the correct contract name and exclude any fallback-exclusion
+    // assertion (which would be vacuous here). The es/fr tests below are the discriminating ones.
     [Fact]
-    public void GetAllStrings_WithIncludeParentCulturesFalse_ReturnsAllStrings()
+    public void GetAllStrings_WithIncludeParentCulturesFalse_ReturnsOnlySingleCultureFile()
     {
+        // en is both the target culture and the sole fallback — single-culture == merged for en.
         var result = this._localizer.GetAllStrings(includeParentCultures: false);
 
         result.Should().NotBeNull();
@@ -194,6 +200,8 @@ public class JsonStringLocalizerTests
         var resultList = result.ToList();
         resultList.Should().Contain(ls => ls.Name == "SimpleMessage");
         resultList.Should().Contain(ls => ls.Name == "ParameterizedMessage");
+        // All returned items must be marked as found
+        resultList.Should().AllSatisfy(ls => ls.ResourceNotFound.Should().BeFalse());
     }
 
     // C1 fix: GetAllStrings(false) should return ONLY the specific culture file keys, not parent culture keys
