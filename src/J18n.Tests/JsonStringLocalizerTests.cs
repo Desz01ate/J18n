@@ -183,17 +183,68 @@ public class JsonStringLocalizerTests
         resultList.Should().AllSatisfy(ls => ls.ResourceNotFound.Should().BeFalse());
     }
 
+    // Renamed from GetAllStrings_WithIncludeParentCulturesFalse_ReturnsAllStrings:
+    // The fixture uses en culture — the single culture file IS the same as the merged hierarchy,
+    // so both true and false return the same keys for en. The test is retained as a non-regression
+    // check but updated to use the correct contract name and exclude any fallback-exclusion
+    // assertion (which would be vacuous here). The es/fr tests below are the discriminating ones.
     [Fact]
-    public void GetAllStrings_WithIncludeParentCulturesFalse_ReturnsAllStrings()
+    public void GetAllStrings_WithIncludeParentCulturesFalse_ReturnsOnlySingleCultureFile()
     {
+        // en is both the target culture and the sole fallback — single-culture == merged for en.
         var result = this._localizer.GetAllStrings(includeParentCultures: false);
 
         result.Should().NotBeNull();
         result.Should().NotBeEmpty();
-        
+
         var resultList = result.ToList();
         resultList.Should().Contain(ls => ls.Name == "SimpleMessage");
         resultList.Should().Contain(ls => ls.Name == "ParameterizedMessage");
+        // All returned items must be marked as found
+        resultList.Should().AllSatisfy(ls => ls.ResourceNotFound.Should().BeFalse());
+    }
+
+    // C1 fix: GetAllStrings(false) should return ONLY the specific culture file keys, not parent culture keys
+    [Fact]
+    public void GetAllStrings_WithIncludeParentCulturesFalse_ReturnsOnlySpecificCultureKeys()
+    {
+        var testResourcesPath = Path.Combine(Directory.GetCurrentDirectory(), "TestResources");
+        var fileProvider = new PhysicalFileProvider(testResourcesPath);
+        var resourceLoader = new JsonResourceLoader(fileProvider, "");
+        var esLocalizer = new JsonStringLocalizer(resourceLoader, "CultureOnlyTest", new CultureInfo("es"));
+
+        var resultTrue = esLocalizer.GetAllStrings(includeParentCultures: true).ToList();
+        var resultFalse = esLocalizer.GetAllStrings(includeParentCultures: false).ToList();
+
+        // true: should contain both the es-specific key and the en fallback key
+        resultTrue.Should().Contain(ls => ls.Name == "OnlyEs");
+        resultTrue.Should().Contain(ls => ls.Name == "OnlyEn");
+
+        // false: should contain ONLY the es-specific key, NOT the en fallback key
+        resultFalse.Should().Contain(ls => ls.Name == "OnlyEs");
+        resultFalse.Should().NotContain(ls => ls.Name == "OnlyEn");
+    }
+
+    // C1 + C2 interaction: GetAllStrings(false) must NOT include neutral file keys
+    [Fact]
+    public void GetAllStrings_WithIncludeParentCulturesFalse_DoesNotIncludeNeutralFileKeys()
+    {
+        var testResourcesPath = Path.Combine(Directory.GetCurrentDirectory(), "TestResources");
+        var fileProvider = new PhysicalFileProvider(testResourcesPath);
+        var resourceLoader = new JsonResourceLoader(fileProvider, "");
+        // NeutralMerge.json = { "Shared": "base" }, NeutralMerge.fr.json = { "Greeting": "Bonjour" }
+        var frLocalizer = new JsonStringLocalizer(resourceLoader, "NeutralMerge", new CultureInfo("fr"));
+
+        var resultTrue = frLocalizer.GetAllStrings(includeParentCultures: true).ToList();
+        var resultFalse = frLocalizer.GetAllStrings(includeParentCultures: false).ToList();
+
+        // true: merged result includes both neutral and culture keys
+        resultTrue.Should().Contain(ls => ls.Name == "Shared");
+        resultTrue.Should().Contain(ls => ls.Name == "Greeting");
+
+        // false: only the specific culture file (fr) — neutral file must NOT be included
+        resultFalse.Should().Contain(ls => ls.Name == "Greeting");
+        resultFalse.Should().NotContain(ls => ls.Name == "Shared");
     }
 
     [Fact]

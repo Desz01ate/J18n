@@ -12,9 +12,13 @@ namespace J18n;
 /// </summary>
 /// <remarks>
 /// The JsonResourceLoader supports culture hierarchy fallback, where resources are loaded
-/// in the following order: specific culture → parent culture → English fallback.
+/// in the following order (lowest to highest priority, later overwrites earlier):
+/// 1. Neutral <c>{baseName}.json</c> base layer.
+/// 2. Configured fallback culture file (default "en", configurable or disabled).
+/// 3. Parent culture(s).
+/// 4. Specific requested culture (wins).
 /// All loaded resources are cached in memory for subsequent requests.
-/// 
+///
 /// Resource files should be named using the pattern: {ResourceName}.{Culture}.json
 /// For example: SharedResource.en.json, SharedResource.es.json, etc.
 /// </remarks>
@@ -22,6 +26,7 @@ public class JsonResourceLoader
 {
     private readonly IFileProvider _fileProvider;
     private readonly string _resourcesPath;
+    private readonly CultureInfo? _fallbackCulture;
     private readonly ConcurrentDictionary<string, Dictionary<string, string>> _resourceCache;
 
     /// <summary>
@@ -29,18 +34,32 @@ public class JsonResourceLoader
     /// </summary>
     /// <param name="fileProvider">The file provider used to access JSON resource files.</param>
     /// <param name="resourcesPath">The relative path to the directory containing resource files. Defaults to "Resources".</param>
+    /// <param name="fallbackCulture">
+    /// The culture name to use as the universal fallback (loaded after the neutral
+    /// <c>{baseName}.json</c> file but before the requested culture chain). Defaults to "en"
+    /// to preserve prior behavior. Set to <c>null</c> or empty to disable the implicit culture
+    /// fallback and rely solely on the neutral file plus the requested culture chain.
+    /// </param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="fileProvider"/> or <paramref name="resourcesPath"/> is null.
+    /// </exception>
+    /// <exception cref="CultureNotFoundException">
+    /// Thrown when <paramref name="fallbackCulture"/> is a non-null, non-empty string that is
+    /// not a valid culture name. Validation is performed eagerly at construction time.
     /// </exception>
     /// <remarks>
     /// The resource path is relative to the file provider's root directory.
     /// Resource files should be organized in the specified directory with the naming convention:
     /// {ResourceName}.{Culture}.json
     /// </remarks>
-    public JsonResourceLoader(IFileProvider fileProvider, string resourcesPath = "Resources")
+    public JsonResourceLoader(IFileProvider fileProvider, string resourcesPath = "Resources", string? fallbackCulture = "en")
     {
         this._fileProvider = fileProvider ?? throw new ArgumentNullException(nameof(fileProvider));
         this._resourcesPath = resourcesPath ?? throw new ArgumentNullException(nameof(resourcesPath));
+        // Parse the fallback culture string once, eagerly — invalid names fail fast at setup.
+        // Empty string or null → disabled (no implicit fallback). Note: new CultureInfo("") returns
+        // InvariantCulture rather than throwing, so we guard empty before constructing.
+        this._fallbackCulture = string.IsNullOrEmpty(fallbackCulture) ? null : new CultureInfo(fallbackCulture);
         this._resourceCache = new ConcurrentDictionary<string, Dictionary<string, string>>();
     }
 
@@ -51,24 +70,31 @@ public class JsonResourceLoader
     /// <param name="culture">The target culture for which to load resources.</param>
     /// <returns>
     /// A dictionary containing all localization key-value pairs for the specified culture,
-    /// including fallback values from parent cultures and English default.
+    /// including fallback values from parent cultures and (when configured) the fallback culture.
     /// Returns an empty dictionary if no resources are found.
     /// </returns>
     /// <remarks>
-    /// This method implements culture hierarchy fallback:
-    /// 1. Loads resources for the specific culture (e.g., "es-ES")
-    /// 2. Falls back to parent culture (e.g., "es")
-    /// 3. Falls back to English ("en") as final fallback
-    /// 4. Returns an empty dictionary if no resources found
-    /// 
+    /// This method merges resources from multiple files in priority order (lowest → highest,
+    /// later values overwrite earlier ones):
+    /// 1. Neutral <c>{baseName}.json</c> base layer.
+    /// 2. Configured fallback culture file (e.g., "en" by default; can be changed or disabled).
+    /// 3. Parent culture(s) of the requested culture (e.g., "es" when requesting "es-ES").
+    /// 4. Specific requested culture file (highest priority, always wins).
+    ///
     /// Results are cached for subsequent calls with the same parameters.
     /// The cache key is based on both the base name and culture name.
     /// </remarks>
     /// <example>
     /// <code>
+    /// // Default "en" fallback: looks for MyResource.json, MyResource.en.json, MyResource.es.json
     /// var loader = new JsonResourceLoader(fileProvider, "Resources");
-    /// var resources = loader.LoadResources("MyResource", new CultureInfo("es-ES"));
-    /// // Will look for: MyResource.es-ES.json, MyResource.es.json, MyResource.en.json
+    /// var resources = loader.LoadResources("MyResource", new CultureInfo("es"));
+    ///
+    /// // Custom "de" fallback: looks for MyResource.json, MyResource.de.json, MyResource.es.json
+    /// var loader2 = new JsonResourceLoader(fileProvider, "Resources", "de");
+    ///
+    /// // No implicit fallback: looks for MyResource.json, MyResource.es.json only
+    /// var loader3 = new JsonResourceLoader(fileProvider, "Resources", null);
     /// </code>
     /// </example>
     public Dictionary<string, string> LoadResources(string baseName, CultureInfo culture)
@@ -81,7 +107,23 @@ public class JsonResourceLoader
     private Dictionary<string, string> LoadResourcesInternal(string baseName, CultureInfo culture)
     {
         var resources = new Dictionary<string, string>();
-        var culturesToCheck = GetCultureHierarchy(culture);
+
+        // C2: Load the neutral file {baseName}.json first as the lowest-priority base layer.
+        var neutralFileName = $"{baseName}.json";
+        var neutralFilePath = string.IsNullOrEmpty(this._resourcesPath) ? neutralFileName : Path.Combine(this._resourcesPath, neutralFileName);
+        var neutralFileInfo = this._fileProvider.GetFileInfo(neutralFilePath);
+
+        if (neutralFileInfo.Exists)
+        {
+            var neutralResources = LoadJsonFile(neutralFileInfo);
+
+            foreach (var kvp in neutralResources)
+            {
+                resources[kvp.Key] = kvp.Value;
+            }
+        }
+
+        var culturesToCheck = this.GetCultureHierarchy(culture);
 
         foreach (var cultureToCheck in culturesToCheck.AsEnumerable().Reverse())
         {
@@ -107,30 +149,75 @@ public class JsonResourceLoader
     }
 
     /// <summary>
-    /// Gets the culture hierarchy for the specified culture, including fallback cultures.
+    /// Loads localization resources for exactly the specified culture's file, without any hierarchy merge.
+    /// </summary>
+    /// <param name="baseName">The base name of the resource (typically the resource class name).</param>
+    /// <param name="culture">The target culture for which to load resources.</param>
+    /// <returns>
+    /// A dictionary containing only the key-value pairs from <c>{baseName}.{culture.Name}.json</c>.
+    /// Returns an empty dictionary if the file does not exist.
+    /// </returns>
+    /// <remarks>
+    /// Unlike <see cref="LoadResources"/>, this method does NOT include any parent culture fallback,
+    /// English fallback, or the neutral <c>{baseName}.json</c> file. It is used by
+    /// <see cref="JsonStringLocalizer.GetAllStrings"/> when <c>includeParentCultures</c> is <c>false</c>.
+    /// Results are cached with a distinct cache key (prefixed with <c>"single:"</c>) separate from the merged cache.
+    /// </remarks>
+    public Dictionary<string, string> LoadResourcesForCultureOnly(string baseName, CultureInfo culture)
+    {
+        var cacheKey = $"single:{baseName}.{culture.Name}";
+
+        return this._resourceCache.GetOrAdd(cacheKey, _ => this.LoadSingleCultureFile(baseName, culture));
+    }
+
+    private Dictionary<string, string> LoadSingleCultureFile(string baseName, CultureInfo culture)
+    {
+        var fileName = $"{baseName}.{culture.Name}.json";
+        var filePath = string.IsNullOrEmpty(this._resourcesPath) ? fileName : Path.Combine(this._resourcesPath, fileName);
+
+        var fileInfo = this._fileProvider.GetFileInfo(filePath);
+
+        if (!fileInfo.Exists)
+        {
+            return new Dictionary<string, string>();
+        }
+
+        return LoadJsonFile(fileInfo);
+    }
+
+    /// <summary>
+    /// Gets the culture hierarchy for the specified culture, including the configured fallback culture.
     /// </summary>
     /// <param name="culture">The target culture.</param>
     /// <returns>
-    /// A list of cultures in hierarchy order, from most specific to most general.
-    /// Always includes English ("en") as the final fallback culture.
+    /// A list of cultures in hierarchy order, from most specific to most general, with the configured
+    /// fallback culture appended last (if set and not already present in the chain).
     /// </returns>
     /// <remarks>
-    /// The hierarchy follows this pattern:
+    /// The hierarchy follows this pattern (list is ordered most-specific first):
     /// 1. Specific culture (e.g., "es-ES" for Spanish in Spain)
     /// 2. Parent culture (e.g., "es" for Spanish)
-    /// 3. English ("en") as universal fallback (if not already present)
-    /// 
-    /// This ensures that applications always have a fallback to English resources
-    /// when specific or parent culture resources are not available.
+    /// 3. Configured fallback culture (e.g., "en" by default), appended if not already in the chain
+    ///    and if a fallback culture has been configured (non-null).
+    ///
+    /// This list is then iterated in reverse order when loading resources, so the fallback culture
+    /// has the lowest priority and the specific requested culture has the highest priority.
+    /// If no fallback culture is configured (null), only the requested culture chain is included.
     /// </remarks>
     /// <example>
-    /// For culture "es-ES":
+    /// For culture "es-ES" with default "en" fallback:
     /// Returns: ["es-ES", "es", "en"]
-    /// 
-    /// For culture "en-GB":
+    ///
+    /// For culture "en-GB" with default "en" fallback:
     /// Returns: ["en-GB", "en"]
+    ///
+    /// For culture "es-ES" with "de" fallback:
+    /// Returns: ["es-ES", "es", "de"]
+    ///
+    /// For culture "es-ES" with null fallback (disabled):
+    /// Returns: ["es-ES", "es"]
     /// </example>
-    private static List<CultureInfo> GetCultureHierarchy(CultureInfo culture)
+    private List<CultureInfo> GetCultureHierarchy(CultureInfo culture)
     {
         var cultures = new List<CultureInfo>();
         var currentCulture = culture;
@@ -141,12 +228,10 @@ public class JsonResourceLoader
             currentCulture = currentCulture.Parent;
         }
 
-        // Add English as fallback if it's not already in the hierarchy
-        var englishCulture = new CultureInfo("en");
-
-        if (!cultures.Any(c => c.Equals(englishCulture)))
+        // Append the configured fallback culture if set and not already in the hierarchy
+        if (this._fallbackCulture != null && !cultures.Any(c => c.Equals(this._fallbackCulture)))
         {
-            cultures.Add(englishCulture);
+            cultures.Add(this._fallbackCulture);
         }
 
         return cultures;

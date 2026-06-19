@@ -299,4 +299,92 @@ public class ServiceCollectionExtensionsTests
         allStrings.Should().NotBeEmpty();
         allStrings.Should().Contain(ls => ls.Name == "SimpleMessage");
     }
+
+    #region Task 5 — Configurable fallback culture DI Tests
+
+    [Fact]
+    public void AddJsonLocalization_WithOptions_FallbackCulturePassedToLoader()
+    {
+        // Wire up DI with "de" fallback via options path; verify loader uses "de", not "en"
+        var testResourcesPath = Path.Combine(Directory.GetCurrentDirectory(), "TestResources");
+        var services = new ServiceCollection();
+
+        services.AddJsonLocalization(options =>
+        {
+            options.ResourcesPath = testResourcesPath;
+            options.ResourcesRelativePath = "";
+            options.FallbackCulture = "de";
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+        var loader = serviceProvider.GetRequiredService<JsonResourceLoader>();
+
+        // FallbackTest.de.json = { "K": "de" }, FallbackTest.fr.json = { "Other": "fr" }
+        // No FallbackTest.en.json — with "de" fallback, "K" must appear in fr result
+        var result = loader.LoadResources("FallbackTest", new System.Globalization.CultureInfo("fr"));
+        result.Should().ContainKey("K");
+        result["K"].Should().Be("de");
+    }
+
+    [Fact]
+    public void AddJsonLocalization_WithFileProvider_DefaultFallbackCulture_IsEn()
+    {
+        var testResourcesPath = Path.Combine(Directory.GetCurrentDirectory(), "TestResources");
+        var services = new ServiceCollection();
+        var fileProvider = new PhysicalFileProvider(testResourcesPath);
+
+        // File-provider overload without fallbackCulture arg — defaults to "en"
+        services.AddJsonLocalization(fileProvider, "");
+
+        var serviceProvider = services.BuildServiceProvider();
+        var loader = serviceProvider.GetRequiredService<JsonResourceLoader>();
+
+        // FallbackEnTest.en.json = { "E": "en" }, FallbackEnTest.fr.json = { "F": "fr" }
+        var result = loader.LoadResources("FallbackEnTest", new System.Globalization.CultureInfo("fr"));
+        result.Should().ContainKey("E");
+        result.Should().ContainKey("F");
+    }
+
+    [Fact]
+    public void AddJsonLocalization_WithFileProvider_CustomFallbackCulture_IsUsed()
+    {
+        var testResourcesPath = Path.Combine(Directory.GetCurrentDirectory(), "TestResources");
+        var services = new ServiceCollection();
+        var fileProvider = new PhysicalFileProvider(testResourcesPath);
+
+        services.AddJsonLocalization(fileProvider, "", "de");
+
+        var serviceProvider = services.BuildServiceProvider();
+        var loader = serviceProvider.GetRequiredService<JsonResourceLoader>();
+
+        // FallbackTest.de.json = { "K": "de" }; with "de" fallback, fr request gets "K"
+        var result = loader.LoadResources("FallbackTest", new System.Globalization.CultureInfo("fr"));
+        result.Should().ContainKey("K");
+        result["K"].Should().Be("de");
+    }
+
+    [Fact]
+    public void AddJsonLocalization_WithOptions_NullFallbackCulture_DisablesFallback()
+    {
+        var testResourcesPath = Path.Combine(Directory.GetCurrentDirectory(), "TestResources");
+        var services = new ServiceCollection();
+
+        services.AddJsonLocalization(options =>
+        {
+            options.ResourcesPath = testResourcesPath;
+            options.ResourcesRelativePath = "";
+            options.FallbackCulture = null;
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+        var loader = serviceProvider.GetRequiredService<JsonResourceLoader>();
+
+        // FallbackEnTest.en.json = { "E": "en" }, FallbackEnTest.fr.json = { "F": "fr" }
+        // With null fallback, E must NOT appear when requesting fr
+        var result = loader.LoadResources("FallbackEnTest", new System.Globalization.CultureInfo("fr"));
+        result.Should().NotContainKey("E");
+        result.Should().ContainKey("F");
+    }
+
+    #endregion
 }
