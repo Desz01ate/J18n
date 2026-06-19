@@ -92,10 +92,7 @@ public abstract class CodeVerifierBase
         }
     }
 
-    private static async Task<CompilationWithAnalyzers> CreateCompilationWithAnalyzersAsync(
-        Project project,
-        DiagnosticAnalyzer analyzer,
-        AnalyzerConfigOptionsProvider? configOptionsProvider = null)
+    private static async Task<CompilationWithAnalyzers> CreateCompilationWithAnalyzersAsync(Project project, DiagnosticAnalyzer analyzer)
     {
         var compilation = await project.GetCompilationAsync();
 
@@ -108,9 +105,7 @@ public abstract class CodeVerifierBase
             additionalFiles.Add(new InMemoryAdditionalText(doc.Name, text));
         }
 
-        var analyzerOptions = configOptionsProvider != null
-            ? new AnalyzerOptions([..additionalFiles], configOptionsProvider)
-            : new AnalyzerOptions([..additionalFiles]);
+        var analyzerOptions = new AnalyzerOptions([..additionalFiles]);
 
         var cwaOptions = new CompilationWithAnalyzersOptions(
             analyzerOptions,
@@ -123,18 +118,13 @@ public abstract class CodeVerifierBase
     }
 
     /// <summary>
-    /// Override to supply a custom AnalyzerConfigOptionsProvider for the analysis.
-    /// </summary>
-    protected virtual AnalyzerConfigOptionsProvider? GetConfigOptionsProvider() => null;
-
-    /// <summary>
     /// Called to test a C# DiagnosticAnalyzer when applied on the single inputted string as a source.
     /// </summary>
     private async Task<Diagnostic[]> GetSortedDiagnosticsFromDocuments()
     {
         var project = this.GetProject();
         var analyzer = this.GetCSharpDiagnosticAnalyzer();
-        var compilationWithAnalyzers = await CreateCompilationWithAnalyzersAsync(project, analyzer, this.GetConfigOptionsProvider());
+        var compilationWithAnalyzers = await CreateCompilationWithAnalyzersAsync(project, analyzer);
         var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
 
         return diagnostics.OrderBy(d => d.Location.SourceSpan.Start).ToArray();
@@ -290,41 +280,4 @@ public struct DiagnosticResult
             Message = message,
         };
     }
-}
-
-/// <summary>
-/// A simple in-memory AnalyzerConfigOptions backed by a dictionary, for use in tests.
-/// </summary>
-public sealed class TestAnalyzerConfigOptions : AnalyzerConfigOptions
-{
-    private readonly Dictionary<string, string> _options;
-
-    public TestAnalyzerConfigOptions(Dictionary<string, string> options)
-    {
-        _options = options;
-    }
-
-    public override bool TryGetValue(string key, out string value)
-    {
-        return _options.TryGetValue(key, out value!);
-    }
-}
-
-/// <summary>
-/// A simple in-memory AnalyzerConfigOptionsProvider backed by a dictionary of global options, for use in tests.
-/// </summary>
-public sealed class TestAnalyzerConfigOptionsProvider : AnalyzerConfigOptionsProvider
-{
-    private static readonly AnalyzerConfigOptions Empty = new TestAnalyzerConfigOptions(new Dictionary<string, string>());
-
-    public TestAnalyzerConfigOptionsProvider(Dictionary<string, string> globalOptions)
-    {
-        GlobalOptions = new TestAnalyzerConfigOptions(globalOptions);
-    }
-
-    public override AnalyzerConfigOptions GlobalOptions { get; }
-
-    public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => Empty;
-
-    public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => Empty;
 }

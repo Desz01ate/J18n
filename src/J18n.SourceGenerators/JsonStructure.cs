@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json;
 
 namespace J18n.SourceGenerators;
@@ -24,7 +25,7 @@ public class JsonValueNode : JsonNode
 
 public class JsonObjectNode : JsonNode
 {
-    public List<JsonNode> Children { get; } = [];
+    public List<JsonNode> Children { get; } = new List<JsonNode>();
     
     public JsonObjectNode(string name) : base(name)
     {
@@ -38,7 +39,7 @@ public class JsonObjectNode : JsonNode
 
 public class JsonArrayNode : JsonNode
 {
-    public List<JsonNode> Items { get; } = [];
+    public List<JsonNode> Items { get; } = new List<JsonNode>();
     public string KeyPath { get; }
     
     public JsonArrayNode(string name, string keyPath) : base(name)

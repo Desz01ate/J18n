@@ -1,6 +1,5 @@
 namespace J18n.Analyzers.Tests;
 
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using NUnit.Framework;
@@ -595,42 +594,5 @@ public class Loc002Tests
         var unusedKeyDiagnostics = diagnostics.Where(d => d.Id == Diagnostics.UnusedKey.Id).ToList();
         Assert.That(unusedKeyDiagnostics.Count, Is.EqualTo(2),
             "Expected 2 LOC002 (UnusedKey) warnings for title and TITLE (case sensitive by default)");
-    }
-
-    [Test]
-    public async Task CaseInsensitive_UsedKeyWithDifferentCasing_DoesNotProduce_LOC002()
-    {
-        // Key used in code as "Foo" but catalog stores it as "foo".
-        // With case-insensitive config the usage of "Foo" must mark "foo" as used,
-        // so no LOC002 is produced for "foo". The genuinely unused "bar" still fires.
-        var source = GetFormattedSource("Foo");
-
-        var additionalFiles = new AdditionalFile[]
-        {
-            new("TestClass.en.json",
-                """
-                {
-                  "foo": "Foo value",
-                  "bar": "Bar value"
-                }
-                """),
-        };
-
-        var analyzerOptions = new Dictionary<string, string>
-        {
-            ["localization_key_case"] = "insensitive",
-        };
-
-        var verifier = new CodeVerifier(source, additionalFiles, analyzerOptions);
-        var diagnostics = await verifier.GetDiagnosticsAsync();
-
-        var unusedKeyDiagnostics = diagnostics.Where(d => d.Id == Diagnostics.UnusedKey.Id).ToList();
-        var unusedKeyNames = unusedKeyDiagnostics.Select(d => d.GetMessage()).ToList();
-
-        Assert.That(unusedKeyDiagnostics.Count, Is.EqualTo(1),
-            $"Expected exactly 1 LOC002 for 'bar' (foo is marked used by case-insensitive match with 'Foo'); got: {string.Join(", ", unusedKeyNames)}");
-
-        Assert.That(unusedKeyDiagnostics.Any(d => d.GetMessage().Contains("bar")),
-            "Expected the 1 LOC002 to be for 'bar'");
     }
 }

@@ -169,20 +169,18 @@ public class JsonStringLocalizer : IStringLocalizer
     /// Gets all localized strings available for this localizer's culture.
     /// </summary>
     /// <param name="includeParentCultures">
-    /// When <c>true</c>, returns the fully merged culture hierarchy (neutral → en → parent → specific culture),
-    /// identical to the strings available through the indexer.
-    /// When <c>false</c>, returns ONLY the keys defined in the exact culture file
-    /// <c>{baseName}.{culture}.json</c>, with no parent, English, or neutral file fallback.
-    /// If that file does not exist, returns an empty collection.
+    /// When true, includes strings from parent cultures and fallback cultures in addition to the specific culture.
+    /// When false, returns only strings that would be loaded for the current culture (which may include parent culture strings due to the loading strategy).
     /// </param>
     /// <returns>
-    /// An enumerable collection of <see cref="LocalizedString"/> objects representing the available localized strings.
+    /// An enumerable collection of <see cref="LocalizedString"/> objects representing all available localized strings.
     /// All returned strings have their ResourceNotFound property set to false since they exist in the resource collection.
     /// </returns>
     /// <remarks>
     /// <para>
-    /// This method provides access to localized strings. With <paramref name="includeParentCultures"/> set to
-    /// <c>false</c>, only strings from the exact culture file are returned (no fallback strings).
+    /// This method provides access to all localized strings that would be available through the indexer properties.
+    /// The actual behavior of the <paramref name="includeParentCultures"/> parameter depends on the current
+    /// implementation, where resources are pre-loaded including parent culture fallbacks.
     /// </para>
     /// <para>
     /// The method is useful for scenarios like:
@@ -207,7 +205,7 @@ public class JsonStringLocalizer : IStringLocalizer
     {
         var resources = includeParentCultures
             ? this._resources
-            : this._resourceLoader.LoadResourcesForCultureOnly(this._baseName, this._culture);
+            : this._resourceLoader.LoadResources(this._baseName, this._culture);
 
         return resources.Select(kvp => new LocalizedString(kvp.Key, kvp.Value, resourceNotFound: false));
     }

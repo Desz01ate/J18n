@@ -16,7 +16,8 @@ using J18n;
 /// The extension methods in this class provide multiple ways to configure JSON-based localization:
 /// <list type="bullet">
 /// <item><description><see cref="AddJsonLocalization(IServiceCollection)"/> - Simple registration with default options</description></item>
-/// <item><description><see cref="AddJsonLocalization(IServiceCollection, IFileProvider, string?, string?)"/> - Registration with custom file provider</description></item>
+/// <item><description><see cref="AddJsonLocalization(IServiceCollection, Action{JsonLocalizationOptions})"/> - Registration with configuration options</description></item>
+/// <item><description><see cref="AddJsonLocalization(IServiceCollection, IFileProvider, string)"/> - Registration with custom file provider</description></item>
 /// </list>
 /// </para>
 /// <para>
@@ -130,7 +131,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<JsonResourceLoader>(provider =>
         {
             var fileProvider = provider.GetRequiredService<IFileProvider>();
-            return new JsonResourceLoader(fileProvider, options.ResourcesRelativePath, options.FallbackCulture);
+            return new JsonResourceLoader(fileProvider, options.ResourcesRelativePath);
         });
 
         services.TryAddTransient<IStringLocalizerFactory, JsonStringLocalizerFactory>();
@@ -146,10 +147,6 @@ public static class ServiceCollectionExtensions
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="fileProvider">The file provider to use for accessing resource files.</param>
     /// <param name="resourcesPath">The relative path within the file provider where resource files are located. Defaults to "Resources".</param>
-    /// <param name="fallbackCulture">
-    /// The culture name used as the universal fallback (after the neutral {baseName}.json file,
-    /// before parent/specific cultures). Defaults to "en". Set to null or empty to disable.
-    /// </param>
     /// <returns>The same service collection for method chaining.</returns>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="services"/> or <paramref name="fileProvider"/> is null.
@@ -181,14 +178,14 @@ public static class ServiceCollectionExtensions
     /// services.AddJsonLocalization(memoryProvider);
     /// </code>
     /// </example>
-    public static IServiceCollection AddJsonLocalization(this IServiceCollection services, IFileProvider fileProvider, string? resourcesPath = null, string? fallbackCulture = "en")
+    public static IServiceCollection AddJsonLocalization(this IServiceCollection services, IFileProvider fileProvider, string? resourcesPath = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
         ArgumentNullException.ThrowIfNull(fileProvider);
 
         services.TryAddSingleton(fileProvider);
-        services.TryAddSingleton(new JsonResourceLoader(fileProvider, resourcesPath ?? "Resources", fallbackCulture));
+        services.TryAddSingleton(new JsonResourceLoader(fileProvider, resourcesPath ?? "Resources"));
         services.TryAddTransient<IStringLocalizerFactory, JsonStringLocalizerFactory>();
         services.Add(ServiceDescriptor.Transient(typeof(IStringLocalizer<>), typeof(JsonStringLocalizer<>)));
 
@@ -196,34 +193,9 @@ public static class ServiceCollectionExtensions
     }
 }
 
-/// <summary>
-/// Configures options for JSON-based localization.
-/// </summary>
-/// <remarks>
-/// This class provides configuration settings that determine how JSON-based localization resources are managed and accessed.
-/// It allows you to specify key options such as the base path for resources, relative resource paths, and fallback culture settings.
-/// </remarks>
 public class JsonLocalizationOptions
 {
-    /// <summary>
-    /// Specifies the file system path where the localization resource files are stored.
-    /// If no value is provided, the default behavior uses the current working directory
-    /// as the base path for locating the resource files.
-    /// </summary>
     public string? ResourcesPath { get; set; }
 
-    /// <summary>
-    /// Defines the relative path to the directory containing localization resource files.
-    /// This path is resolved relative to the application's base directory if no absolute path is specified.
-    /// By default, the value is set to "Resources".
-    /// </summary>
     public string ResourcesRelativePath { get; set; } = "Resources";
-
-    /// <summary>
-    /// Culture loaded as the universal fallback (after the neutral {baseName}.json
-    /// file, before parent/specific cultures). Defaults to "en" to preserve prior
-    /// behavior. Set to null or empty to disable the implicit culture fallback and
-    /// rely solely on the neutral file plus the requested culture chain.
-    /// </summary>
-    public string? FallbackCulture { get; set; } = "en";
 }
