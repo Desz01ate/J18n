@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace J18n.Analyzers.Tests;

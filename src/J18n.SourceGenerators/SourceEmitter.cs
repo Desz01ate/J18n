@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -58,12 +61,10 @@ public static class SourceEmitter
                 source.AppendLine();
                 source.AppendLine($"{indent}public static class {className}");
                 source.AppendLine($"{indent}{{");
-
-                // Note: The bare array-container key (e.g. "items") is intentionally NOT emitted.
-                // The runtime only produces indexed keys like "items[0]", "items[1]", etc.
-                // Emitting Key = "items" would cause LOC001 (Error) because the analyzer
-                // catalog does not contain the bare container key — only indexed entries.
-
+                
+                // Generate the array key itself
+                source.AppendLine($"{indent}    public const string Key = \"{EscapeString(arrayNode.KeyPath)}\";");
+                
                 // Generate array item access
                 GenerateArrayContent(source, arrayNode, indent + "    ");
                 
@@ -96,10 +97,7 @@ public static class SourceEmitter
                 source.AppendLine();
                 source.AppendLine($"{indent}public static class Item{i}");
                 source.AppendLine($"{indent}{{");
-
-                // Note: The bare nested-array container key (e.g. "matrix[0]") is intentionally
-                // NOT emitted — same reason as the top-level array case above.
-
+                source.AppendLine($"{indent}    public const string Key = \"{EscapeString(nestedArrayNode.KeyPath)}\";");
                 GenerateArrayContent(source, nestedArrayNode, indent + "    ");
                 source.AppendLine($"{indent}}}");
             }
@@ -156,7 +154,7 @@ public static class SourceEmitter
             result = result.Replace(invalidChar, ' ');
         }
         
-        var parts = result.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+        var parts = result.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
         var pascalCase = string.Join("", parts.Select(part =>
             string.IsNullOrEmpty(part) ? string.Empty :
             char.ToUpperInvariant(part[0]) + part.Substring(1)));

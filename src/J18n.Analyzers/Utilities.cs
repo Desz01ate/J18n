@@ -1,3 +1,4 @@
+using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
@@ -6,6 +7,19 @@ namespace J18n.Analyzers;
 
 public static class Utilities
 {
+    private static bool IsStringLiteralConstant(IOperation operation, out string? value)
+    {
+        value = null;
+
+        if (operation is ILiteralOperation { Type.SpecialType: SpecialType.System_String } literal)
+        {
+            value = literal.ConstantValue.Value as string;
+            return value != null;
+        }
+
+        return false;
+    }
+
     public static bool IsLocalizationAccessor(IOperation operation, LocalizationConfig config)
     {
         switch (operation)
@@ -68,9 +82,9 @@ public static class Utilities
 
     private static bool IsTypeOrImplementsInterface(ITypeSymbol type, string typeName)
     {
-        // Check exact type name match (simple name or fully-qualified display string)
+        // Check exact type name match
         if (type.Name.Equals(typeName, StringComparison.Ordinal) ||
-            type.ToDisplayString().Equals(typeName, StringComparison.Ordinal))
+            type.ToDisplayString().Contains(typeName))
         {
             return true;
         }
@@ -79,7 +93,7 @@ public static class Utilities
         foreach (var @interface in type.AllInterfaces)
         {
             if (@interface.Name.Equals(typeName, StringComparison.Ordinal) ||
-                @interface.ToDisplayString().Equals(typeName, StringComparison.Ordinal))
+                @interface.ToDisplayString().Contains(typeName))
             {
                 return true;
             }
@@ -90,11 +104,12 @@ public static class Utilities
 
     public static string? ExtractKeyFromArgument(IOperation argumentOperation)
     {
-        var constant = argumentOperation.ConstantValue;
-        if (constant.HasValue && constant.Value is string value)
+        if (IsStringLiteralConstant(argumentOperation, out var literalValue))
         {
-            return value;
+            return literalValue;
         }
+
+        // Could add support for interpolated strings without expressions here
 
         return null;
     }
