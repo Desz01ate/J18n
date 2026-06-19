@@ -17,7 +17,7 @@ using J18n;
 /// <list type="bullet">
 /// <item><description><see cref="AddJsonLocalization(IServiceCollection)"/> - Simple registration with default options</description></item>
 /// <item><description><see cref="AddJsonLocalization(IServiceCollection, Action{JsonLocalizationOptions})"/> - Registration with configuration options</description></item>
-/// <item><description><see cref="AddJsonLocalization(IServiceCollection, IFileProvider, string)"/> - Registration with custom file provider</description></item>
+/// <item><description><see cref="AddJsonLocalization(IServiceCollection, IFileProvider, string?, string?)"/> - Registration with custom file provider</description></item>
 /// </list>
 /// </para>
 /// <para>
@@ -131,7 +131,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<JsonResourceLoader>(provider =>
         {
             var fileProvider = provider.GetRequiredService<IFileProvider>();
-            return new JsonResourceLoader(fileProvider, options.ResourcesRelativePath);
+            return new JsonResourceLoader(fileProvider, options.ResourcesRelativePath, options.FallbackCulture);
         });
 
         services.TryAddTransient<IStringLocalizerFactory, JsonStringLocalizerFactory>();
@@ -147,6 +147,10 @@ public static class ServiceCollectionExtensions
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="fileProvider">The file provider to use for accessing resource files.</param>
     /// <param name="resourcesPath">The relative path within the file provider where resource files are located. Defaults to "Resources".</param>
+    /// <param name="fallbackCulture">
+    /// The culture name used as the universal fallback (after the neutral {baseName}.json file,
+    /// before parent/specific cultures). Defaults to "en". Set to null or empty to disable.
+    /// </param>
     /// <returns>The same service collection for method chaining.</returns>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="services"/> or <paramref name="fileProvider"/> is null.
@@ -178,14 +182,14 @@ public static class ServiceCollectionExtensions
     /// services.AddJsonLocalization(memoryProvider);
     /// </code>
     /// </example>
-    public static IServiceCollection AddJsonLocalization(this IServiceCollection services, IFileProvider fileProvider, string? resourcesPath = null)
+    public static IServiceCollection AddJsonLocalization(this IServiceCollection services, IFileProvider fileProvider, string? resourcesPath = null, string? fallbackCulture = "en")
     {
         ArgumentNullException.ThrowIfNull(services);
 
         ArgumentNullException.ThrowIfNull(fileProvider);
 
         services.TryAddSingleton(fileProvider);
-        services.TryAddSingleton(new JsonResourceLoader(fileProvider, resourcesPath ?? "Resources"));
+        services.TryAddSingleton(new JsonResourceLoader(fileProvider, resourcesPath ?? "Resources", fallbackCulture));
         services.TryAddTransient<IStringLocalizerFactory, JsonStringLocalizerFactory>();
         services.Add(ServiceDescriptor.Transient(typeof(IStringLocalizer<>), typeof(JsonStringLocalizer<>)));
 
@@ -198,4 +202,12 @@ public class JsonLocalizationOptions
     public string? ResourcesPath { get; set; }
 
     public string ResourcesRelativePath { get; set; } = "Resources";
+
+    /// <summary>
+    /// Culture loaded as the universal fallback (after the neutral {baseName}.json
+    /// file, before parent/specific cultures). Defaults to "en" to preserve prior
+    /// behavior. Set to null or empty to disable the implicit culture fallback and
+    /// rely solely on the neutral file plus the requested culture chain.
+    /// </summary>
+    public string? FallbackCulture { get; set; } = "en";
 }

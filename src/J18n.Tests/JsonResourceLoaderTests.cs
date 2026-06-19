@@ -1,4 +1,5 @@
 using System.Globalization;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 
 namespace J18n.Tests;
@@ -458,6 +459,161 @@ public class JsonResourceLoaderTests
             if (File.Exists(tempFile))
                 File.Delete(tempFile);
         }
+    }
+
+    #endregion
+
+    #region Task 5 — Configurable fallback culture Tests
+
+    [Fact]
+    public void Constructor_WithCustomFallbackCulture_DoesNotThrow()
+    {
+        Action act = () => new JsonResourceLoader(this._fileProvider, "", "de");
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Constructor_WithNullFallbackCulture_DoesNotThrow()
+    {
+        Action act = () => new JsonResourceLoader(this._fileProvider, "", null);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Constructor_WithEmptyFallbackCulture_DoesNotThrow()
+    {
+        Action act = () => new JsonResourceLoader(this._fileProvider, "", "");
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Constructor_WithInvalidFallbackCulture_ThrowsCultureNotFoundException()
+    {
+        // "???" is a reliably invalid culture tag on ICU-based runtimes
+        Action act = () => new JsonResourceLoader(this._fileProvider, "", "???");
+
+        act.Should().Throw<CultureNotFoundException>();
+    }
+
+    [Fact]
+    public void LoadResources_WithCustomFallbackCulture_UsesFallbackNotDefault()
+    {
+        // FallbackTest.de.json = { "K": "de" }, FallbackTest.fr.json = { "Other": "fr" }
+        // No FallbackTest.en.json — proves fallback is "de", not "en"
+        var loader = new JsonResourceLoader(this._fileProvider, "", "de");
+        var culture = new CultureInfo("fr");
+
+        var result = loader.LoadResources("FallbackTest", culture);
+
+        result.Should().ContainKey("K");
+        result["K"].Should().Be("de");
+        result.Should().ContainKey("Other");
+        result["Other"].Should().Be("fr");
+    }
+
+    [Fact]
+    public void LoadResources_WithDefaultFallbackCulture_StillUsesEnglish()
+    {
+        // FallbackEnTest.en.json = { "E": "en" }, FallbackEnTest.fr.json = { "F": "fr" }
+        // Loader constructed with no fallbackCulture arg — defaults to "en"
+        var loader = new JsonResourceLoader(this._fileProvider, "");
+        var culture = new CultureInfo("fr");
+
+        var result = loader.LoadResources("FallbackEnTest", culture);
+
+        result.Should().ContainKey("E");
+        result["E"].Should().Be("en");
+        result.Should().ContainKey("F");
+        result["F"].Should().Be("fr");
+    }
+
+    [Fact]
+    public void LoadResources_WithNullFallbackCulture_DoesNotLoadFallback()
+    {
+        // FallbackEnTest.en.json = { "E": "en" }, FallbackEnTest.fr.json = { "F": "fr" }
+        // With null fallback, English keys must NOT appear when requesting "fr"
+        var loader = new JsonResourceLoader(this._fileProvider, "", null);
+        var culture = new CultureInfo("fr");
+
+        var result = loader.LoadResources("FallbackEnTest", culture);
+
+        result.Should().NotContainKey("E");
+        result.Should().ContainKey("F");
+        result["F"].Should().Be("fr");
+    }
+
+    [Fact]
+    public void LoadResources_WithEmptyFallbackCulture_DoesNotLoadFallback()
+    {
+        // Empty string is treated the same as null (disabled)
+        var loader = new JsonResourceLoader(this._fileProvider, "", "");
+        var culture = new CultureInfo("fr");
+
+        var result = loader.LoadResources("FallbackEnTest", culture);
+
+        result.Should().NotContainKey("E");
+        result.Should().ContainKey("F");
+    }
+
+    [Fact]
+    public void LoadResources_WithFallbackCulture_SpecificCultureWinsOverFallback()
+    {
+        // PrecedenceTest.de.json = { "K": "fallback" }, PrecedenceTest.fr.json = { "K": "french" }
+        var loader = new JsonResourceLoader(this._fileProvider, "", "de");
+        var culture = new CultureInfo("fr");
+
+        var result = loader.LoadResources("PrecedenceTest", culture);
+
+        result.Should().ContainKey("K");
+        result["K"].Should().Be("french");
+    }
+
+    [Fact]
+    public void LoadResourcesForCultureOnly_WithCustomFallbackCulture_DoesNotLoadFallback()
+    {
+        // Even with a "de" fallback configured, LoadResourcesForCultureOnly must only load fr file
+        var loader = new JsonResourceLoader(this._fileProvider, "", "de");
+        var culture = new CultureInfo("fr");
+
+        var result = loader.LoadResourcesForCultureOnly("FallbackTest", culture);
+
+        // Should contain "Other" (from FallbackTest.fr.json) only
+        result.Should().ContainKey("Other");
+        // Must NOT contain "K" (which is in FallbackTest.de.json — the fallback)
+        result.Should().NotContainKey("K");
+    }
+
+    [Fact]
+    public void JsonLocalizationOptions_DefaultFallbackCulture_IsEn()
+    {
+        var options = new JsonLocalizationOptions();
+
+        options.FallbackCulture.Should().Be("en");
+    }
+
+    [Fact]
+    public void JsonLocalizationOptions_FallbackCulture_CanBeSet()
+    {
+        var options = new JsonLocalizationOptions
+        {
+            FallbackCulture = "de"
+        };
+
+        options.FallbackCulture.Should().Be("de");
+    }
+
+    [Fact]
+    public void JsonLocalizationOptions_FallbackCulture_CanBeSetToNull()
+    {
+        var options = new JsonLocalizationOptions
+        {
+            FallbackCulture = null
+        };
+
+        options.FallbackCulture.Should().BeNull();
     }
 
     #endregion
