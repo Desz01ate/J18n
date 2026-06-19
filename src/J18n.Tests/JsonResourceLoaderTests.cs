@@ -180,6 +180,72 @@ public class JsonResourceLoaderTests
         act.Should().NotThrow();
     }
 
+    #region C1 — LoadResourcesForCultureOnly Tests
+
+    [Fact]
+    public void LoadResourcesForCultureOnly_WithSpecificCulture_ReturnsOnlyCultureFileKeys()
+    {
+        var culture = new CultureInfo("es");
+
+        var result = this._loader.LoadResourcesForCultureOnly("CultureOnlyTest", culture);
+
+        result.Should().ContainKey("OnlyEs");
+        result.Should().NotContainKey("OnlyEn");
+    }
+
+    [Fact]
+    public void LoadResourcesForCultureOnly_WhenFileDoesNotExist_ReturnsEmpty()
+    {
+        var culture = new CultureInfo("de"); // no de file exists
+
+        var result = this._loader.LoadResourcesForCultureOnly("CultureOnlyTest", culture);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void LoadResourcesForCultureOnly_CalledMultipleTimes_UsesCaching()
+    {
+        var culture = new CultureInfo("es");
+
+        var result1 = this._loader.LoadResourcesForCultureOnly("CultureOnlyTest", culture);
+        var result2 = this._loader.LoadResourcesForCultureOnly("CultureOnlyTest", culture);
+
+        result1.Should().BeSameAs(result2);
+    }
+
+    #endregion
+
+    #region C2 — Neutral file loading Tests
+
+    [Fact]
+    public void LoadResources_WithNeutralFileAndCultureFile_MergesBothFiles()
+    {
+        // NeutralMerge.json = { "Shared": "base" }, NeutralMerge.fr.json = { "Greeting": "Bonjour" }
+        var culture = new CultureInfo("fr");
+
+        var result = this._loader.LoadResources("NeutralMerge", culture);
+
+        result.Should().ContainKey("Shared");
+        result["Shared"].Should().Be("base");
+        result.Should().ContainKey("Greeting");
+        result["Greeting"].Should().Be("Bonjour");
+    }
+
+    [Fact]
+    public void LoadResources_WithNeutralFileOverriddenByCultureFile_CultureFileWins()
+    {
+        // NeutralOverride.json = { "Greeting": "base" }, NeutralOverride.fr.json = { "Greeting": "Bonjour" }
+        var culture = new CultureInfo("fr");
+
+        var result = this._loader.LoadResources("NeutralOverride", culture);
+
+        result.Should().ContainKey("Greeting");
+        result["Greeting"].Should().Be("Bonjour");
+    }
+
+    #endregion
+
     #region Nested JSON Tests
 
     [Fact]

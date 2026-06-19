@@ -81,6 +81,22 @@ public class JsonResourceLoader
     private Dictionary<string, string> LoadResourcesInternal(string baseName, CultureInfo culture)
     {
         var resources = new Dictionary<string, string>();
+
+        // C2: Load the neutral file {baseName}.json first as the lowest-priority base layer.
+        var neutralFileName = $"{baseName}.json";
+        var neutralFilePath = string.IsNullOrEmpty(this._resourcesPath) ? neutralFileName : Path.Combine(this._resourcesPath, neutralFileName);
+        var neutralFileInfo = this._fileProvider.GetFileInfo(neutralFilePath);
+
+        if (neutralFileInfo.Exists)
+        {
+            var neutralResources = LoadJsonFile(neutralFileInfo);
+
+            foreach (var kvp in neutralResources)
+            {
+                resources[kvp.Key] = kvp.Value;
+            }
+        }
+
         var culturesToCheck = GetCultureHierarchy(culture);
 
         foreach (var cultureToCheck in culturesToCheck.AsEnumerable().Reverse())
@@ -104,6 +120,43 @@ public class JsonResourceLoader
         }
 
         return resources;
+    }
+
+    /// <summary>
+    /// Loads localization resources for exactly the specified culture's file, without any hierarchy merge.
+    /// </summary>
+    /// <param name="baseName">The base name of the resource (typically the resource class name).</param>
+    /// <param name="culture">The target culture for which to load resources.</param>
+    /// <returns>
+    /// A dictionary containing only the key-value pairs from <c>{baseName}.{culture.Name}.json</c>.
+    /// Returns an empty dictionary if the file does not exist.
+    /// </returns>
+    /// <remarks>
+    /// Unlike <see cref="LoadResources"/>, this method does NOT include any parent culture fallback,
+    /// English fallback, or the neutral <c>{baseName}.json</c> file. It is used by
+    /// <see cref="JsonStringLocalizer.GetAllStrings"/> when <c>includeParentCultures</c> is <c>false</c>.
+    /// Results are cached with a distinct cache key (prefixed with <c>"single:"</c>) separate from the merged cache.
+    /// </remarks>
+    public Dictionary<string, string> LoadResourcesForCultureOnly(string baseName, CultureInfo culture)
+    {
+        var cacheKey = $"single:{baseName}.{culture.Name}";
+
+        return this._resourceCache.GetOrAdd(cacheKey, _ => this.LoadSingleCultureFile(baseName, culture));
+    }
+
+    private Dictionary<string, string> LoadSingleCultureFile(string baseName, CultureInfo culture)
+    {
+        var fileName = $"{baseName}.{culture.Name}.json";
+        var filePath = string.IsNullOrEmpty(this._resourcesPath) ? fileName : Path.Combine(this._resourcesPath, fileName);
+
+        var fileInfo = this._fileProvider.GetFileInfo(filePath);
+
+        if (!fileInfo.Exists)
+        {
+            return new Dictionary<string, string>();
+        }
+
+        return LoadJsonFile(fileInfo);
     }
 
     /// <summary>
