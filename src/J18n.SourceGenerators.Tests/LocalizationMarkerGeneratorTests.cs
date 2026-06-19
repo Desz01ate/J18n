@@ -590,4 +590,38 @@ public class LocalizationMarkerGeneratorSimpleTests
         Assert.Contains("public const string _Item0 = \"matrix[1][0]\";", generatedText);
         Assert.Contains("public const string _Item1 = \"matrix[1][1]\";", generatedText);
     }
+
+    [Fact]
+    public void Generator_PreservesPascalCasePropertyNames_WhenJsonKeysAreAlreadyPascalCase()
+    {
+        // Arrange
+        var generator = new LocalizationMarkerGenerator();
+        var driver = CSharpGeneratorDriver.Create(generator);
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            references: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
+
+        var jsonContent = """{"Dashboard": "Dashboard", "HelloWorld": "Hello World", "GoodMorning": "Good Morning"}""";
+        var additionalTexts = ImmutableArray.Create<AdditionalText>(
+            new TestAdditionalText("Resources/Nav.json", jsonContent));
+
+        var options = new TestAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RootNamespace"] = "TestProject",
+        });
+
+        driver = (CSharpGeneratorDriver)driver.AddAdditionalTexts(additionalTexts)
+                                             .WithUpdatedAnalyzerConfigOptions(options);
+
+        // Act
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+
+        // Assert
+        Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+
+        var generatedText = string.Join("\n\n---\n\n", outputCompilation.SyntaxTrees.Select(t => t.ToString()));
+        Assert.Contains("public const string Dashboard = \"Dashboard\";", generatedText);
+        Assert.Contains("public const string HelloWorld = \"HelloWorld\";", generatedText);
+        Assert.Contains("public const string GoodMorning = \"GoodMorning\";", generatedText);
+    }
 }

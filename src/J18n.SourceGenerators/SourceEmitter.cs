@@ -155,9 +155,9 @@ public static class SourceEmitter
         }
         
         var parts = result.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-        var pascalCase = string.Join("", parts.Select(part => 
-            string.IsNullOrEmpty(part) ? string.Empty : 
-            char.ToUpperInvariant(part[0]) + part.Substring(1).ToLowerInvariant()));
+        var pascalCase = string.Join("", parts.Select(part =>
+            string.IsNullOrEmpty(part) ? string.Empty :
+            char.ToUpperInvariant(part[0]) + part.Substring(1)));
         
         return string.IsNullOrEmpty(pascalCase) ? "_" : pascalCase;
     }
