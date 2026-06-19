@@ -165,52 +165,78 @@ public class JsonKeyCatalog
 
     private static string InferCultureFromPath(string filePath, string[] configuredCultures)
     {
+        // Step 1: Extract the filename culture suffix (last dot-segment of the name without extension).
         var fileName = Path.GetFileNameWithoutExtension(filePath);
-        var directory = Path.GetDirectoryName(filePath) ?? "";
-
-        // Check if configured cultures are in the path
-        foreach (var culture in configuredCultures)
-        {
-            if (directory.IndexOf(culture, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                fileName.IndexOf(culture, StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                return culture;
-            }
-        }
-
-        // Extract culture from filename patterns like "Program.en.json", "messages.th.json", etc.
         var parts = fileName.Split('.');
 
         if (parts.Length > 1)
         {
-            // Take the last part before the extension as potential culture code
             var lastPart = parts[parts.Length - 1];
 
-            // Check if it looks like a culture code (2-5 letters, possibly with dash)
-            if (lastPart.Length is >= 2 and <= 5 &&
-                System.Text.RegularExpressions.Regex.IsMatch(lastPart, @"^[a-zA-Z]{2}(-[a-zA-Z]{2})?$"))
+            // Valid culture token: 2 letters or 2-letter-dash-2-letter (e.g. "en", "en-US").
+            if (System.Text.RegularExpressions.Regex.IsMatch(lastPart, @"^[a-zA-Z]{2}(-[a-zA-Z]{2})?$"))
             {
-                return lastPart.ToLowerInvariant();
+                if (configuredCultures.Length > 0)
+                {
+                    // Configured cultures: return only if the suffix exactly matches one.
+                    foreach (var culture in configuredCultures)
+                    {
+                        if (string.Equals(lastPart, culture, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return culture;
+                        }
+                    }
+                    // Suffix doesn't match any configured culture — fall through to directory check.
+                }
+                else
+                {
+                    // No configured cultures: return the candidate lowercased.
+                    return lastPart.ToLowerInvariant();
+                }
             }
         }
 
-        // Check for common culture patterns in directory or filename
-        var commonCultures = new[]
-        {
-            "en", "en-US", "fr", "de", "es", "it", "ja", "zh", "pt", "ru", "th", "ko", "ar", "hi", "tr", "pl", "nl", "sv", "da", "no", "fi", "cs", "sk", "hu", "ro", "bg", "hr", "sr", "sl", "et",
-            "lv", "lt", "uk", "be", "mk", "sq", "az", "ka", "am", "is", "fo", "mt", "cy", "eu", "ca", "gl", "ast", "br", "co", "fur", "rm", "sc", "vec", "lij", "pms", "nap", "scn",
-        };
+        // Step 2: Check directory segments for an exact culture token match.
+        var directory = Path.GetDirectoryName(filePath) ?? "";
+        var segments = directory.Split(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+            StringSplitOptions.RemoveEmptyEntries);
 
-        foreach (var culture in commonCultures)
+        if (configuredCultures.Length > 0)
         {
-            if (directory.IndexOf(culture, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                fileName.IndexOf(culture, StringComparison.OrdinalIgnoreCase) >= 0)
+            // When configured: exact-match any segment against the configured list.
+            foreach (var segment in segments)
             {
-                return culture;
+                foreach (var culture in configuredCultures)
+                {
+                    if (string.Equals(segment, culture, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return culture;
+                    }
+                }
+            }
+        }
+        else
+        {
+            // When not configured: exact-match against known common culture tokens only.
+            var commonCultures = new[]
+            {
+                "en", "en-US", "fr", "de", "es", "it", "ja", "zh", "pt", "ru", "th", "ko", "ar", "hi", "tr", "pl", "nl", "sv", "da", "no", "fi", "cs", "sk", "hu", "ro", "bg", "hr", "sr", "sl", "et",
+                "lv", "lt", "uk", "be", "mk", "sq", "az", "ka", "am", "is", "fo", "mt", "cy", "eu", "ca", "gl", "ast", "br", "co", "fur", "rm", "sc", "vec", "lij", "pms", "nap", "scn",
+            };
+
+            foreach (var segment in segments)
+            {
+                foreach (var culture in commonCultures)
+                {
+                    if (string.Equals(segment, culture, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return culture;
+                    }
+                }
             }
         }
 
-        // Default culture
+        // Step 3: No culture could be determined.
         return "default";
     }
 
@@ -223,19 +249,33 @@ public class JsonKeyCatalog
                 {
                     var currentKey = string.IsNullOrEmpty(prefix) ? property.Name : $"{prefix}.{property.Name}";
 
-                    if (property.Value.ValueKind == JsonValueKind.Object)
+                    foreach (var nestedKey in ExtractKeysFromJsonElement(property.Value, currentKey))
                     {
-                        foreach (var nestedKey in ExtractKeysFromJsonElement(property.Value, currentKey))
-                        {
-                            yield return nestedKey;
-                        }
-                    }
-                    else
-                    {
-                        yield return currentKey;
+                        yield return nestedKey;
                     }
                 }
 
+                break;
+
+            case JsonValueKind.Array:
+                var index = 0;
+                foreach (var arrayElement in element.EnumerateArray())
+                {
+                    var currentKey = $"{prefix}[{index}]";
+
+                    foreach (var nestedKey in ExtractKeysFromJsonElement(arrayElement, currentKey))
+                    {
+                        yield return nestedKey;
+                    }
+
+                    index++;
+                }
+
+                break;
+
+            default:
+                // String, Number, True, False, Null — yield the current path as a leaf key.
+                yield return prefix;
                 break;
         }
     }
