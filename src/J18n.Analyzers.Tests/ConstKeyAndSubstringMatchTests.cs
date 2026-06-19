@@ -2,7 +2,6 @@ namespace J18n.Analyzers.Tests;
 
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis;
 using NUnit.Framework;
 using Verifier;
 

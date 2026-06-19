@@ -1,6 +1,4 @@
-using System.Linq;
 using Microsoft.CodeAnalysis;
-using System.IO;
 
 namespace J18n.SourceGenerators;
 

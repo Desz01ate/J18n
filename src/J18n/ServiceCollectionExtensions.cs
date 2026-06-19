@@ -16,7 +16,6 @@ using J18n;
 /// The extension methods in this class provide multiple ways to configure JSON-based localization:
 /// <list type="bullet">
 /// <item><description><see cref="AddJsonLocalization(IServiceCollection)"/> - Simple registration with default options</description></item>
-/// <item><description><see cref="AddJsonLocalization(IServiceCollection, Action{JsonLocalizationOptions})"/> - Registration with configuration options</description></item>
 /// <item><description><see cref="AddJsonLocalization(IServiceCollection, IFileProvider, string?, string?)"/> - Registration with custom file provider</description></item>
 /// </list>
 /// </para>
@@ -197,10 +196,27 @@ public static class ServiceCollectionExtensions
     }
 }
 
+/// <summary>
+/// Configures options for JSON-based localization.
+/// </summary>
+/// <remarks>
+/// This class provides configuration settings that determine how JSON-based localization resources are managed and accessed.
+/// It allows you to specify key options such as the base path for resources, relative resource paths, and fallback culture settings.
+/// </remarks>
 public class JsonLocalizationOptions
 {
+    /// <summary>
+    /// Specifies the file system path where the localization resource files are stored.
+    /// If no value is provided, the default behavior uses the current working directory
+    /// as the base path for locating the resource files.
+    /// </summary>
     public string? ResourcesPath { get; set; }
 
+    /// <summary>
+    /// Defines the relative path to the directory containing localization resource files.
+    /// This path is resolved relative to the application's base directory if no absolute path is specified.
+    /// By default, the value is set to "Resources".
+    /// </summary>
     public string ResourcesRelativePath { get; set; } = "Resources";
 
     /// <summary>

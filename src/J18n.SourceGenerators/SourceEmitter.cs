@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -159,7 +156,7 @@ public static class SourceEmitter
             result = result.Replace(invalidChar, ' ');
         }
         
-        var parts = result.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        var parts = result.Split([' '], StringSplitOptions.RemoveEmptyEntries);
         var pascalCase = string.Join("", parts.Select(part =>
             string.IsNullOrEmpty(part) ? string.Empty :
             char.ToUpperInvariant(part[0]) + part.Substring(1)));

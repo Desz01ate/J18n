@@ -1,15 +1,12 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
 namespace J18n.Analyzers;
 
-public class JsonKeyCatalog
+public partial class JsonKeyCatalog
 {
     private readonly Dictionary<string, HashSet<string>> _keysByCulture = new();
     private readonly Dictionary<(string key, string culture), List<Location>> _keyToLocations = new();
@@ -35,7 +32,8 @@ public class JsonKeyCatalog
         return realCultures.Length > 0 ? realCultures : this._discoveredCultures;
     }
 
-    public static JsonKeyCatalog FromAdditionalFiles(ImmutableArray<AdditionalText> additionalFiles, LocalizationConfig config)
+    public static JsonKeyCatalog FromAdditionalFiles(ImmutableArray<AdditionalText> additionalFiles,
+        LocalizationConfig config)
     {
         var catalog = new JsonKeyCatalog();
 
@@ -98,7 +96,10 @@ public class JsonKeyCatalog
             using var document = JsonDocument.Parse(content);
             var keys = ExtractKeysFromJsonElement(document.RootElement, "");
 
-            var duplicateChecker = new HashSet<string>(config.KeyCaseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
+            var duplicateChecker =
+                new HashSet<string>(config.KeyCaseSensitive
+                    ? StringComparer.Ordinal
+                    : StringComparer.OrdinalIgnoreCase);
 
             foreach (var key in keys)
             {
@@ -113,7 +114,9 @@ public class JsonKeyCatalog
 
                 if (!this._keysByCulture.ContainsKey(culture))
                 {
-                    this._keysByCulture[culture] = new HashSet<string>(config.KeyCaseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
+                    this._keysByCulture[culture] = new HashSet<string>(config.KeyCaseSensitive
+                        ? StringComparer.Ordinal
+                        : StringComparer.OrdinalIgnoreCase);
                 }
 
                 this._keysByCulture[culture].Add(key);
@@ -174,7 +177,7 @@ public class JsonKeyCatalog
             var lastPart = parts[parts.Length - 1];
 
             // Valid culture token: 2 letters or 2-letter-dash-2-letter (e.g. "en", "en-US").
-            if (System.Text.RegularExpressions.Regex.IsMatch(lastPart, @"^[a-zA-Z]{2}(-[a-zA-Z]{2})?$"))
+            if (Regex.IsMatch(lastPart, "^[a-zA-Z]{2}(-[a-zA-Z]{2})?$", RegexOptions.Compiled))
             {
                 if (configuredCultures.Length > 0)
                 {
@@ -198,7 +201,7 @@ public class JsonKeyCatalog
 
         // Step 2: Check directory segments for an exact culture token match.
         var directory = Path.GetDirectoryName(filePath) ?? "";
-        var segments = directory.Split(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+        var segments = directory.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
             StringSplitOptions.RemoveEmptyEntries);
 
         if (configuredCultures.Length > 0)
@@ -220,8 +223,10 @@ public class JsonKeyCatalog
             // When not configured: exact-match against known common culture tokens only.
             var commonCultures = new[]
             {
-                "en", "en-US", "fr", "de", "es", "it", "ja", "zh", "pt", "ru", "th", "ko", "ar", "hi", "tr", "pl", "nl", "sv", "da", "no", "fi", "cs", "sk", "hu", "ro", "bg", "hr", "sr", "sl", "et",
-                "lv", "lt", "uk", "be", "mk", "sq", "az", "ka", "am", "is", "fo", "mt", "cy", "eu", "ca", "gl", "ast", "br", "co", "fur", "rm", "sc", "vec", "lij", "pms", "nap", "scn",
+                "en", "en-US", "fr", "de", "es", "it", "ja", "zh", "pt", "ru", "th", "ko", "ar", "hi", "tr", "pl", "nl",
+                "sv", "da", "no", "fi", "cs", "sk", "hu", "ro", "bg", "hr", "sr", "sl", "et",
+                "lv", "lt", "uk", "be", "mk", "sq", "az", "ka", "am", "is", "fo", "mt", "cy", "eu", "ca", "gl", "ast",
+                "br", "co", "fur", "rm", "sc", "vec", "lij", "pms", "nap", "scn",
             };
 
             foreach (var segment in segments)
