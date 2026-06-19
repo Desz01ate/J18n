@@ -275,6 +275,70 @@ public class Loc003Tests
         Assert.That(diagnostic.GetMessage(), Does.Contain("form.submit"));
     }
 
+    /// <summary>
+    /// Regression test for F2: A key present ONLY in the neutral (no-culture-suffix) file
+    /// must NOT produce LOC003 when ≥2 real cultures exist.
+    ///
+    /// After C2, the runtime merges the neutral {baseName}.json into every culture's
+    /// resolution as a shared base layer, so the key resolves in all cultures at runtime.
+    /// The analyzer must reflect this: a neutral-file key is culture-agnostic and must
+    /// not be flagged as partially missing.
+    ///
+    /// Also confirms: en-specific key missing in fr still produces LOC003 (en fallback
+    /// must NOT suppress LOC003 — only the culture-agnostic neutral file does).
+    /// </summary>
+    [Test]
+    public async Task NeutralFile_OnlyKey_WithTwoRealCultures_DoesNotProduceLOC003()
+    {
+        var source = GetFormattedSource("Shared");
+
+        var additionalFiles = new AdditionalFile[]
+        {
+            // Neutral file: culture-agnostic base layer, merged into every culture at runtime
+            new("TestClass.json", """{ "Shared": "base" }"""),
+            // Real culture files: both have "A" but neither has "Shared"
+            new("TestClass.en.json", """{ "A": "en-value" }"""),
+            new("TestClass.fr.json", """{ "A": "fr-value" }"""),
+        };
+
+        var verifier = new CodeVerifier(source, additionalFiles);
+        var diagnostics = await verifier.GetDiagnosticsAsync();
+
+        var loc003 = diagnostics.Where(d => d.Id == Diagnostics.PartialMissingKey.Id).ToList();
+        Assert.That(loc003, Is.Empty,
+            "Expected NO LOC003: 'Shared' is in the neutral file and resolves in all cultures at runtime");
+
+        var loc001 = diagnostics.Where(d => d.Id == Diagnostics.MissingKey.Id).ToList();
+        Assert.That(loc001, Is.Empty,
+            "Expected NO LOC001: 'Shared' is in the catalog (neutral file)");
+    }
+
+    /// <summary>
+    /// Regression guard: en-fallback must NOT suppress LOC003.
+    /// A key in 'en' but not 'fr' (with no neutral-file entry) must still produce LOC003.
+    /// </summary>
+    [Test]
+    public async Task EnFallback_DoesNotSuppressLOC003_MissingInFr()
+    {
+        var source = GetFormattedSource("en.only.key");
+
+        var additionalFiles = new AdditionalFile[]
+        {
+            new("TestClass.en.json", """{ "en": { "only": { "key": "English Value" } } }"""),
+            new("TestClass.fr.json", """{ "other": "French" }"""),
+        };
+
+        var verifier = new CodeVerifier(source, additionalFiles);
+
+        await verifier.VerifyDiagnostic(
+            DiagnosticResult.Create(
+                Diagnostics.PartialMissingKey.Id,
+                DiagnosticSeverity.Warning,
+                14,
+                32,
+                "Localization key 'en.only.key' is missing in cultures: fr"));
+    }
+
     [Test]
     public async Task DefaultCulture_VsRealCultures_HandlingInLOC003()
     {
@@ -282,7 +346,7 @@ public class Loc003Tests
 
         var additionalFiles = new AdditionalFile[]
         {
-            new("TestClass.json", "{ \"error\": { \"message\": \"Default Error\" } }"), // Default culture
+            new("TestClass.json", "{ \"error\": { \"message\": \"Default Error\" } }"), // Default/neutral culture
             new("TestClass.en.json", "{ \"error\": { \"message\": \"Error\" } }"),
             new("TestClass.fr.json", "{ \"error\": { \"message\": \"Erreur\" } }"),
             new("TestClass.de.json", "{ \"error\": { \"title\": \"Fehler\" } }"), // Missing message
@@ -293,9 +357,12 @@ public class Loc003Tests
 
         var partialMissingDiagnostics = diagnostics.Where(d => d.Id == Diagnostics.PartialMissingKey.Id).ToList();
 
-        // Should produce LOC003 because the "default" culture is filtered out when real cultures exist
-        Assert.That(partialMissingDiagnostics.Count, Is.EqualTo(1),
-            "Expected 1 LOC003 warning with default culture filtered out");
+        // After C2, the neutral TestClass.json is merged into every culture at runtime.
+        // "error.message" is present in the neutral file → it resolves in ALL cultures
+        // (including de) at runtime. The analyzer must not flag it as partially missing.
+        // Updated from 1 → 0: the old expectation encoded the pre-C2 false positive.
+        Assert.That(partialMissingDiagnostics.Count, Is.EqualTo(0),
+            "Expected NO LOC003: error.message is in the neutral file and resolves in all cultures via runtime merge");
     }
 
     [Test]

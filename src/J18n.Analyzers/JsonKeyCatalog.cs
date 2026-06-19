@@ -292,6 +292,26 @@ public class JsonKeyCatalog
 
     public IEnumerable<string> GetMissingCultures(string key, string[] requiredCultures, StringComparison comparison)
     {
+        // A key present in the culture-agnostic neutral ("default") file is merged by the
+        // runtime into every culture's resolution as a shared base layer (C2 change). Such a
+        // key resolves in ALL cultures at runtime, so it must not be flagged as partially
+        // missing in any of them. Return an empty list to suppress LOC003.
+        //
+        // IMPORTANT: This only applies to the culture-agnostic neutral set ("default").
+        // The "en" fallback (or any other per-culture file) does NOT suppress LOC003 —
+        // a key in "en" but not "fr" is a genuine missing "fr" translation.
+        if (this._keysByCulture.TryGetValue("default", out var defaultKeys))
+        {
+            var inDefault = comparison == StringComparison.OrdinalIgnoreCase
+                ? defaultKeys.Any(k => string.Equals(k, key, comparison))
+                : defaultKeys.Contains(key);
+
+            if (inDefault)
+            {
+                return [];
+            }
+        }
+
         var missingCultures = new List<string>();
 
         foreach (var culture in requiredCultures)
